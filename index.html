@@ -551,13 +551,28 @@ document.getElementById('auth-btn').onclick = async () => {
   if (!email || !pass) { toast('מלא מייל וסיסמה'); return }
   const btn = document.getElementById('auth-btn')
   btn.disabled = true; btn.textContent = 'מתחבר...'
-  if (isSignUp) {
-    const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name || email.split('@')[0] } } })
-    if (error) { toast('שגיאה: ' + error.message); btn.disabled = false; btn.textContent = 'הרשמה' }
-    else { toast('נשלח מייל אישור — בדוק את תיבת הדואר שלך ✓'); btn.disabled = false; btn.textContent = 'הרשמה' }
-  } else {
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass })
-    if (error) { toast('מייל או סיסמה שגויים'); btn.disabled = false; btn.textContent = 'כניסה' }
+  try {
+    if (isSignUp) {
+      const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name || email.split('@')[0] } } })
+      if (error) {
+        toast('שגיאה: ' + error.message)
+        btn.disabled = false; btn.textContent = 'הרשמה'
+      } else if (!data.session) {
+        // User already exists — try signing in directly
+        const { error: siErr } = await sb.auth.signInWithPassword({ email, password: pass })
+        if (siErr) {
+          toast('המייל כבר רשום — נסה להתחבר עם כניסה')
+          btn.disabled = false; btn.textContent = 'הרשמה'
+        }
+      }
+      // if data.session exists, onAuthStateChange fires and takes over
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass })
+      if (error) { toast('מייל או סיסמה שגויים'); btn.disabled = false; btn.textContent = 'כניסה' }
+    }
+  } catch(e) {
+    toast('שגיאה בחיבור — נסה שוב')
+    btn.disabled = false; btn.textContent = isSignUp ? 'הרשמה' : 'כניסה'
   }
 }
 document.getElementById('inp-pass').onkeydown = e => { if (e.key === 'Enter') document.getElementById('auth-btn').click() }
