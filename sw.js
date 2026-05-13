@@ -1,13 +1,11 @@
-const CACHE = 'switch-v1'
-const ASSETS = [
-  '/switch-app/',
-  '/switch-app/index.html',
+const CACHE = 'switch-v2'
+const STATIC = [
   '/switch-app/icon-192.png',
   '/switch-app/icon-512.png',
 ]
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()))
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting()))
 })
 
 self.addEventListener('activate', e => {
@@ -17,13 +15,23 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return
   const url = new URL(e.request.url)
-  // Only cache same-origin assets, not Supabase API calls
   if (!url.origin.includes('github.io') && !url.origin.includes('googleapis') && !url.origin.includes('jsdelivr')) return
+
+  // HTML — network first, fallback to cache (ensures users always get latest code)
+  if (url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()))
+        return res
+      }).catch(() => caches.match(e.request))
+    )
+    return
+  }
+
+  // Static assets — cache first
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-      if (res.ok && url.origin.includes('github.io')) {
-        caches.open(CACHE).then(c => c.put(e.request, res.clone()))
-      }
+      if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()))
       return res
     }))
   )

@@ -674,9 +674,16 @@ document.getElementById('auth-btn').onclick = async () => {
   if (!email || !pass) { toast('מלא מייל וסיסמה'); return }
   const btn = document.getElementById('auth-btn')
   btn.disabled = true; btn.textContent = 'מתחבר...'
+  const authTimeout = setTimeout(() => {
+    if (document.getElementById('auth-screen') && !document.getElementById('auth-screen').classList.contains('hide')) {
+      btn.disabled = false; btn.textContent = isSignUp ? 'הרשמה' : 'כניסה'
+      toast('הכניסה לוקחת זמן — נסה שוב')
+    }
+  }, 10000)
   try {
     if (isSignUp) {
       const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name || email.split('@')[0] } } })
+      clearTimeout(authTimeout)
       if (error) {
         toast('שגיאה: ' + error.message)
         btn.disabled = false; btn.textContent = 'הרשמה'
@@ -691,9 +698,11 @@ document.getElementById('auth-btn').onclick = async () => {
       // if data.session exists, onAuthStateChange fires and takes over
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass })
+      clearTimeout(authTimeout)
       if (error) { toast('מייל או סיסמה שגויים'); btn.disabled = false; btn.textContent = 'כניסה' }
     }
   } catch(e) {
+    clearTimeout(authTimeout)
     toast('שגיאה בחיבור — נסה שוב')
     btn.disabled = false; btn.textContent = isSignUp ? 'הרשמה' : 'כניסה'
   }
