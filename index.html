@@ -752,9 +752,9 @@ sb.auth.onAuthStateChange(async (event, session) => {
       }
       av.style.background = ME?.avatar_bg || '#9FE1CB'
       av.style.color = ME?.avatar_tc || '#085041'
-      if (event === 'SIGNED_IN' && !ME?.onboarded) {
+      if (!ME?.onboarded) {
         showOnboarding()
-      } else if (event === 'SIGNED_IN' && !sessionStorage.getItem('welcomed')) {
+      } else if (!sessionStorage.getItem('welcomed')) {
         sessionStorage.setItem('welcomed', '1')
         showWelcome(ME?.name || '')
       }
@@ -809,11 +809,13 @@ function skelFeed() {
 }
 
 async function loadFeed() {
-  if (!ME) return
   const feedEl = document.getElementById('feed')
+  if (!feedEl) return
   feedEl.innerHTML = skelFeed()
   const q = (document.getElementById('si').value || '').trim()
-  let { data: users } = await sb.from('profiles').select('*, services(*)').neq('id', ME.id).order('rating', { ascending: false })
+  let query = sb.from('profiles').select('*, services(*)')
+  if (ME?.id) query = query.neq('id', ME.id)
+  let { data: users } = await query.order('rating', { ascending: false })
   if (!users) users = []
   let list = users.filter(u => {
     const svcs = u.services || []
