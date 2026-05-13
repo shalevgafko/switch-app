@@ -714,35 +714,43 @@ const AV_TCS = ['#085041','#3C3489','#633806','#991B1B','#1E40AF','#065F46']
 
 sb.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
-    let { data: profile } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
-    if (!profile) {
-      const meta = session.user.user_metadata || {}
-      const name = meta.full_name || session.user.email.split('@')[0]
-      const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
-      const idx = Math.floor(Math.random() * AV_BGS.length)
-      await sb.from('profiles').upsert({
-        id: session.user.id, name, avatar_initials: initials,
-        avatar_bg: AV_BGS[idx], avatar_tc: AV_TCS[idx]
-      })
-      const { data: created } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
-      profile = created
-    }
-    ME = profile
+    // Show app immediately — don't wait for profile fetch
     document.getElementById('auth-screen').classList.add('hide')
     document.getElementById('app-screen').classList.remove('hide')
     const av = document.getElementById('topbar-av')
-    if (ME?.avatar_url) {
-      av.innerHTML = `<img src="${ME.avatar_url}" style="width:100%;height:100%;object-fit:cover">`
-    } else {
-      av.textContent = ME?.avatar_initials || session.user.email.substring(0,2).toUpperCase()
-    }
-    av.style.background = ME?.avatar_bg || '#9FE1CB'
-    av.style.color = ME?.avatar_tc || '#085041'
-    if (event === 'SIGNED_IN' && !ME?.onboarded) {
-      showOnboarding()
-    } else if (event === 'SIGNED_IN' && !sessionStorage.getItem('welcomed')) {
-      sessionStorage.setItem('welcomed', '1')
-      showWelcome(ME?.name || '')
+    av.textContent = session.user.email.substring(0,2).toUpperCase()
+    av.style.background = '#9FE1CB'; av.style.color = '#085041'
+
+    try {
+      let { data: profile } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
+      if (!profile) {
+        const meta = session.user.user_metadata || {}
+        const name = meta.full_name || session.user.email.split('@')[0]
+        const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
+        const idx = Math.floor(Math.random() * AV_BGS.length)
+        await sb.from('profiles').upsert({
+          id: session.user.id, name, avatar_initials: initials,
+          avatar_bg: AV_BGS[idx], avatar_tc: AV_TCS[idx]
+        })
+        const { data: created } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
+        profile = created
+      }
+      ME = profile
+      if (ME?.avatar_url) {
+        av.innerHTML = `<img src="${ME.avatar_url}" style="width:100%;height:100%;object-fit:cover">`
+      } else {
+        av.textContent = ME?.avatar_initials || session.user.email.substring(0,2).toUpperCase()
+      }
+      av.style.background = ME?.avatar_bg || '#9FE1CB'
+      av.style.color = ME?.avatar_tc || '#085041'
+      if (event === 'SIGNED_IN' && !ME?.onboarded) {
+        showOnboarding()
+      } else if (event === 'SIGNED_IN' && !sessionStorage.getItem('welcomed')) {
+        sessionStorage.setItem('welcomed', '1')
+        showWelcome(ME?.name || '')
+      }
+    } catch(e) {
+      console.error('profile load error:', e)
     }
     loadFeed()
     subscribeNotifs()
