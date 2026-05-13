@@ -263,6 +263,31 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 .empty{text-align:center;padding:50px 20px;color:var(--tx3);font-size:14px}
 .sect-lbl{font-size:11px;font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:4px 2px 8px}
 .loading{text-align:center;padding:30px;color:var(--tx3);font-size:14px}
+
+/* ── NOTIFICATIONS ── */
+.notif-btn{background:transparent;border:none;cursor:pointer;color:var(--tx2);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .15s;position:relative;flex-shrink:0}
+.notif-btn:hover{background:var(--bg)}
+.notif-badge{position:absolute;top:3px;right:3px;background:#e03;color:#fff;border-radius:10px;padding:0 4px;font-size:10px;line-height:15px;min-width:15px;text-align:center;font-weight:700;pointer-events:none;border:2px solid var(--sur)}
+.notif-panel{position:fixed;top:56px;left:8px;right:8px;max-width:360px;margin:0 auto;max-height:430px;background:var(--sur);border:1px solid var(--bd);border-radius:var(--r16);box-shadow:0 8px 32px rgba(0,0,0,.14);z-index:300;overflow:hidden;display:flex;flex-direction:column;animation:fdi .15s ease}
+.notif-panel.hide{display:none}
+.notif-hdr{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.notif-hdr-title{font-size:14px;font-weight:700;color:var(--tx);font-family:'Inter',sans-serif}
+.notif-mark-all{background:transparent;border:none;cursor:pointer;font-size:12px;color:var(--g);font-family:inherit;font-weight:500}
+.notif-list{overflow-y:auto;flex:1}
+.notif-item{padding:12px 14px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .12s}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:var(--bg)}
+.notif-item.unread{background:#F0FAF5}
+.notif-item.unread:hover{background:#E5F5EE}
+.notif-ico{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.notif-ico.req{background:var(--pl)}
+.notif-ico.msg{background:var(--gl)}
+.notif-ico.like{background:#FEE2E2}
+.notif-ico.comm{background:var(--al)}
+.notif-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:2px}
+.notif-body{font-size:12px;color:var(--tx2);line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notif-time{font-size:11px;color:var(--tx3);margin-top:3px}
+.notif-empty{text-align:center;padding:32px 16px;color:var(--tx3);font-size:13px}
 </style>
 </head>
 <body>
@@ -316,7 +341,13 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
       <div class="logo-arrows"><div class="arr-up"></div><div class="arr-dn"></div></div>
       <div class="logo-txt" style="font-size:21px"><span class="sw">sw</span>itch</div>
     </div>
-    <div class="topbar-av" id="topbar-av" onclick="goTab('prof')">יג</div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <button class="notif-btn" id="notif-btn" onclick="toggleNotifPanel()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge hide" id="notif-badge">0</span>
+      </button>
+      <div class="topbar-av" id="topbar-av" onclick="goTab('prof')">יג</div>
+    </div>
   </div>
   <div class="pcontent">
     <!-- FEED -->
@@ -415,6 +446,15 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
     <textarea id="rtxt" style="width:100%;border:1px solid var(--bdm);border-radius:var(--r12);padding:10px;font-size:14px;background:var(--bg);font-family:inherit;outline:none;min-height:80px;resize:none" placeholder="ביקורת קצרה..."></textarea>
     <button class="btn-main" style="margin-top:12px" onclick="submitRate()">שלח דירוג</button>
   </div>
+</div>
+
+<!-- NOTIFICATIONS PANEL -->
+<div id="notif-panel" class="notif-panel hide">
+  <div class="notif-hdr">
+    <div class="notif-hdr-title">התראות</div>
+    <button class="notif-mark-all" onclick="markAllRead()">סמן הכל כנקרא</button>
+  </div>
+  <div class="notif-list" id="notif-list"><div class="notif-empty">טוען...</div></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -550,6 +590,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
       showWelcome(ME?.name || '')
     }
     loadFeed()
+    subscribeNotifs()
+    loadNotifCount()
   } else {
     ME = null
     document.getElementById('auth-screen').classList.remove('hide')
@@ -688,6 +730,7 @@ async function sendReq(toId, toName) {
   document.getElementById('pintbtn').className = 'btn-main sent'
   document.getElementById('pintbtn').onclick = null
   toast(`בקשה נשלחה ל-${toName}!`)
+  await notify(toId, 'new_request', 'בקשת החלפה חדשה', `${ME.name} מעוניין להחליף שירותים איתך`)
 }
 
 // ── REQUESTS ──
@@ -734,8 +777,9 @@ async function loadReqs() {
   document.getElementById('rlist').innerHTML = html
 }
 
-async function acceptReq(reqId, name) {
+async function acceptReq(reqId, name, fromUserId) {
   await sb.from('requests').update({ status: 'confirmed' }).eq('id', reqId)
+  if (fromUserId) await notify(fromUserId, 'request_accepted', 'בקשתך אושרה! 🎉', `${ME.name} קיבל את הבקשה שלך — פתח צ'אט`)
   toast(`Match אושר עם ${name}! 🎉`)
   loadReqs()
 }
@@ -795,6 +839,7 @@ async function sendMsg() {
   const txt = inp.value.trim(); if (!txt || !activeChatReqId) return
   inp.value = ''
   await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: txt })
+  if (activeChatOtherId) await notify(activeChatOtherId, 'new_message', 'הודעה חדשה מ-' + ME.name, txt.substring(0, 50))
   await renderMsgs()
 }
 async function loadChatList() {
@@ -862,7 +907,7 @@ function renderPost(p, likedSet) {
     </div>
     <div class="post-body">${escHtml(p.text)}</div>
     <div class="post-foot">
-      <button class="pact${liked?' liked':''}" onclick="toggleLike('${p.id}',${liked})" id="like-btn-${p.id}">
+      <button class="pact${liked?' liked':''}" onclick="toggleLike('${p.id}',${liked},'${p.user_id}')" id="like-btn-${p.id}">
         <svg width="15" height="15" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         <span id="like-count-${p.id}">${likesCount}</span>
       </button>
@@ -886,7 +931,7 @@ async function submitPost() {
   loadComm()
 }
 
-async function toggleLike(postId, wasLiked) {
+async function toggleLike(postId, wasLiked, authorId) {
   const btn = document.getElementById('like-btn-' + postId)
   const countEl = document.getElementById('like-count-' + postId)
   const cur = parseInt(countEl.textContent) || 0
@@ -894,14 +939,15 @@ async function toggleLike(postId, wasLiked) {
     await sb.from('post_likes').delete().eq('post_id', postId).eq('user_id', ME.id)
     btn.classList.remove('liked')
     btn.querySelector('svg').setAttribute('fill','none')
-    btn.setAttribute('onclick', `toggleLike('${postId}',false)`)
+    btn.setAttribute('onclick', `toggleLike('${postId}',false,'${authorId}')`)
     countEl.textContent = Math.max(0, cur - 1)
   } else {
     await sb.from('post_likes').insert({ post_id: postId, user_id: ME.id })
     btn.classList.add('liked')
     btn.querySelector('svg').setAttribute('fill','currentColor')
-    btn.setAttribute('onclick', `toggleLike('${postId}',true)`)
+    btn.setAttribute('onclick', `toggleLike('${postId}',true,'${authorId}')`)
     countEl.textContent = cur + 1
+    if (authorId) await notify(authorId, 'new_like', ME.name + ' אהב את הפוסט שלך ❤️', '')
   }
 }
 
@@ -944,7 +990,13 @@ async function addComment(postId) {
   const inp = document.getElementById('cinp-' + postId)
   const text = inp.value.trim(); if (!text) return
   inp.value = ''
+  const [{ data: post }] = await Promise.all([
+    sb.from('posts').select('user_id').eq('id', postId).single()
+  ])
   await sb.from('post_comments').insert({ post_id: postId, user_id: ME.id, text })
+  if (post?.user_id && post.user_id !== ME.id) {
+    await notify(post.user_id, 'new_comment', ME.name + ' הגיב על הפוסט שלך', text.substring(0, 60))
+  }
   const countEl = document.getElementById('comm-count-' + postId)
   if (countEl) countEl.textContent = parseInt(countEl.textContent||0) + 1
   await renderComments(postId)
@@ -1051,6 +1103,82 @@ async function doSignOut() {
   sessionStorage.removeItem('welcomed')
   toast('להתראות!')
 }
+
+// ── NOTIFICATIONS ──
+const NOTIF_ICONS = { new_request:'🤝', request_accepted:'🎉', new_message:'💬', new_like:'❤️', new_comment:'💬' }
+const NOTIF_ICO_CLASS = { new_request:'req', request_accepted:'req', new_message:'msg', new_like:'like', new_comment:'comm' }
+
+async function notify(userId, type, title, body) {
+  if (!userId || userId === ME?.id) return
+  try { await sb.from('notifications').insert({ user_id: userId, type, title, body: body || '' }) } catch(e) {}
+}
+
+async function loadNotifCount() {
+  if (!ME) return
+  const { count } = await sb.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', ME.id).eq('is_read', false)
+  const badge = document.getElementById('notif-badge')
+  if (!badge) return
+  const n = count || 0
+  if (n > 0) { badge.textContent = n > 9 ? '9+' : n; badge.classList.remove('hide') }
+  else badge.classList.add('hide')
+}
+
+function subscribeNotifs() {
+  if (!ME) return
+  sb.channel('notifs-' + ME.id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${ME.id}` }, (payload) => {
+      loadNotifCount()
+      const n = payload.new
+      const t = document.getElementById('toast')
+      t.textContent = n.title + (n.body ? ' · ' + n.body.substring(0, 35) : '')
+      t.classList.add('show')
+      setTimeout(() => t.classList.remove('show'), 3500)
+    })
+    .subscribe()
+}
+
+async function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel')
+  if (panel.classList.contains('hide')) {
+    panel.classList.remove('hide')
+    await renderNotifs()
+    await markAllRead()
+  } else {
+    panel.classList.add('hide')
+  }
+}
+
+async function renderNotifs() {
+  const list = document.getElementById('notif-list')
+  list.innerHTML = '<div class="notif-empty">טוען...</div>'
+  const { data } = await sb.from('notifications').select('*').eq('user_id', ME.id).order('created_at', { ascending: false }).limit(25)
+  const notifs = data || []
+  if (!notifs.length) { list.innerHTML = '<div class="notif-empty">🔔<br>אין התראות עדיין</div>'; return }
+  list.innerHTML = notifs.map(n => `
+    <div class="notif-item ${n.is_read ? '' : 'unread'}">
+      <div class="notif-ico ${NOTIF_ICO_CLASS[n.type] || 'msg'}">${NOTIF_ICONS[n.type] || '🔔'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="notif-title">${escHtml(n.title)}</div>
+        ${n.body ? `<div class="notif-body">${escHtml(n.body)}</div>` : ''}
+        <div class="notif-time">${formatTimeAgo(n.created_at)}</div>
+      </div>
+    </div>`).join('')
+}
+
+async function markAllRead() {
+  if (!ME) return
+  await sb.from('notifications').update({ is_read: true }).eq('user_id', ME.id).eq('is_read', false)
+  document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'))
+  loadNotifCount()
+}
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('notif-panel')
+  const btn = document.getElementById('notif-btn')
+  if (panel && !panel.classList.contains('hide') && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+    panel.classList.add('hide')
+  }
+})
 
 // ── HELPERS ──
 function escHtml(s) {
