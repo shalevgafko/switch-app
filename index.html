@@ -571,9 +571,24 @@ document.getElementById('toggle-btn').onclick = () => {
 }
 
 // ── AUTH STATE ──
+const AV_BGS = ['#9FE1CB','#CECBF6','#FAC775','#FCA5A5','#93C5FD','#6EE7B7']
+const AV_TCS = ['#085041','#3C3489','#633806','#991B1B','#1E40AF','#065F46']
+
 sb.auth.onAuthStateChange(async (event, session) => {
   if (session?.user) {
-    const { data: profile } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
+    let { data: profile } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
+    if (!profile) {
+      const meta = session.user.user_metadata || {}
+      const name = meta.full_name || session.user.email.split('@')[0]
+      const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
+      const idx = Math.floor(Math.random() * AV_BGS.length)
+      await sb.from('profiles').upsert({
+        id: session.user.id, name, avatar_initials: initials,
+        avatar_bg: AV_BGS[idx], avatar_tc: AV_TCS[idx]
+      })
+      const { data: created } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
+      profile = created
+    }
     ME = profile
     document.getElementById('auth-screen').classList.add('hide')
     document.getElementById('app-screen').classList.remove('hide')
