@@ -46,7 +46,7 @@ serve(async (req) => {
               </tr></table></td></tr>
             </table>
             <div style="text-align:center;margin-bottom:24px">
-              <a href="https://your-switch-app-url.com" style="display:inline-block;background:linear-gradient(135deg,#1D9E75,#085041);color:#fff;text-decoration:none;padding:16px 40px;border-radius:14px;font-size:16px;font-weight:700">
+              <a href="https://shalevgafko.github.io/switch-app" style="display:inline-block;background:linear-gradient(135deg,#1D9E75,#085041);color:#fff;text-decoration:none;padding:16px 40px;border-radius:14px;font-size:16px;font-weight:700">
                 פתח את switch →
               </a>
             </div>
