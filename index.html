@@ -663,7 +663,11 @@ function showWelcome(name) {
 function closeWelcome() {
   const ws = document.getElementById('welcome-screen')
   ws.classList.add('welcome-out')
-  setTimeout(() => ws.classList.add('hide'), 450)
+  setTimeout(() => {
+    ws.classList.add('hide')
+    ws.classList.remove('welcome-out')
+    if (!ME?.onboarded) showOnboarding()
+  }, 450)
 }
 
 // ── AUTH ──
@@ -752,11 +756,12 @@ sb.auth.onAuthStateChange(async (event, session) => {
       }
       av.style.background = ME?.avatar_bg || '#9FE1CB'
       av.style.color = ME?.avatar_tc || '#085041'
-      if (!ME?.onboarded) {
-        showOnboarding()
-      } else if (!sessionStorage.getItem('welcomed')) {
+      if (!sessionStorage.getItem('welcomed')) {
         sessionStorage.setItem('welcomed', '1')
         showWelcome(ME?.name || '')
+        // closeWelcome() will call showOnboarding() if !ME.onboarded
+      } else if (!ME?.onboarded) {
+        showOnboarding()
       }
     } catch(e) {
       console.error('profile load error:', e)
@@ -855,6 +860,7 @@ async function loadFeed() {
 
 // ── PROFILE SHEET (other users) ──
 async function openProf(id) {
+  if (!ME) return
   viewUserId = id
   const { data: u }       = await sb.from('profiles').select('*, services(*)').eq('id', id).single()
   const { data: reviews } = await sb.from('reviews').select('*, reviewer:profiles!reviews_reviewer_id_fkey(name)').eq('reviewed_id', id).order('created_at',{ascending:false}).limit(5)
@@ -1043,6 +1049,7 @@ function closeChat() {
 
 // ── COMMUNITY ──
 async function loadComm() {
+  if (!ME) return
   const feed = document.getElementById('commfeed')
   feed.innerHTML = '<div class="loading">טוען...</div>'
   const { data: posts } = await sb.from('posts')
@@ -1180,6 +1187,7 @@ async function addComment(postId) {
 async function loadProf() {
   if (!ME) return
   const { data: me } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
+  if (!me) { toast('שגיאה בטעינת הפרופיל — רענן'); return }
   ME = me
   const svcs = me.services || []
   const avSrc = me.avatar_url ? `<img src="${me.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (me.avatar_initials||me.name.substring(0,2))
