@@ -1200,11 +1200,17 @@ async function addComment(postId) {
 async function loadProf() {
   if (!document.getElementById('pg-prof').classList.contains('on')) return
   const profpage = document.getElementById('profpage')
-  if (!ME) {
-    profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--tx3)"><div style="font-size:36px;margin-bottom:12px">👤</div><div style="font-size:15px">טוען פרופיל...</div></div>'
-    return
+  profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--tx3)"><div style="font-size:36px;margin-bottom:12px">👤</div><div style="font-size:15px">טוען...</div></div>'
+
+  // Get user ID from ME if loaded, otherwise directly from auth session
+  let userId = ME?.id
+  if (!userId) {
+    const { data: { session } } = await sb.auth.getSession()
+    if (!session?.user) return
+    userId = session.user.id
   }
-  const { data: me } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
+
+  const { data: me, error } = await sb.from('profiles').select('*, services(*)').eq('id', userId).single()
   if (!me) {
     profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px"><div style="color:var(--tx3)">שגיאה בטעינת הפרופיל</div><button class="btn-g" onclick="loadProf()" style="width:auto;padding:10px 24px">נסה שוב</button></div>'
     return
