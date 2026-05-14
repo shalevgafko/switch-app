@@ -98,6 +98,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 /* ── PROFILE SHEET ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;justify-content:center}
 .overlay.on{display:flex;animation:fdi .2s ease}
+#create-comm-overlay.on,#join-comm-overlay.on{display:flex!important;animation:fdi .2s ease}
 @keyframes fdi{from{opacity:0}to{opacity:1}}
 .psheet{background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:91dvh;overflow-y:auto;animation:sup .25s cubic-bezier(.32,.72,0,1)}
 @keyframes sup{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -196,34 +197,43 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 .edit-fg textarea{min-height:80px;resize:none}
 
 /* ── COMMUNITY ── */
-.comm-composer{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r16);padding:14px;margin-bottom:10px}
-.composer-row{display:flex;align-items:center;gap:10px}
-.composer-inp{flex:1;border:1px solid var(--bdm);border-radius:var(--r12);padding:10px 14px;font-size:14px;background:var(--bg);color:var(--tx);font-family:inherit;outline:none;resize:none;min-height:42px;max-height:120px;transition:border-color .15s,box-shadow .15s;line-height:1.5}
-.composer-inp:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(29,158,117,.08)}
-.post-btn{padding:10px 16px;border-radius:var(--r12);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:background .15s,transform .1s;white-space:nowrap}
-.post-btn:hover{background:#178a65;transform:translateY(-1px)}
-.post-card{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r16);overflow:hidden;margin-bottom:8px;transition:box-shadow .15s}
-.post-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.post-hdr{padding:12px 14px 8px;display:flex;align-items:center;gap:10px}
-.post-uname{font-size:14px;font-weight:600;color:var(--tx)}
-.post-time{font-size:11px;color:var(--tx3);margin-top:1px}
-.post-body{padding:0 14px 10px;font-size:14px;color:var(--tx);line-height:1.65}
-.post-foot{padding:8px 14px;border-top:1px solid var(--bd);display:flex;gap:4px}
-.pact{background:transparent;border:none;cursor:pointer;color:var(--tx3);font-size:13px;font-family:inherit;display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--r8);transition:background .15s,color .15s}
-.pact:hover{background:var(--bg)}
-.pact.liked{color:#e03}
-.pact.liked svg{fill:#e03;stroke:#e03}
-.comments-section{border-top:1px solid var(--bd);padding:10px 14px;display:none;flex-direction:column;gap:8px;background:#FAFAF8}
-.comments-section.open{display:flex}
-.comment-item{display:flex;gap:8px;align-items:flex-start}
-.comment-bubble{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r12);border-top-right-radius:4px;padding:8px 11px;flex:1}
-.comment-author{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:2px}
-.comment-text{font-size:13px;color:var(--tx2);line-height:1.5}
-.comment-inp-row{display:flex;gap:7px;align-items:center;margin-top:4px}
-.comment-inp{flex:1;border:1px solid var(--bdm);border-radius:var(--r20);padding:8px 14px;font-size:13px;background:var(--sur);color:var(--tx);font-family:inherit;outline:none;transition:border-color .15s}
-.comment-inp:focus{border-color:var(--g)}
-.comment-send{width:32px;height:32px;border-radius:50%;background:var(--g);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
-.comment-send:hover{background:#178a65}
+.comm-hero{margin:12px;background:linear-gradient(135deg,#3C3489,#6B5EC7);border-radius:var(--r16);padding:20px 18px;color:#fff;position:relative;overflow:hidden}
+.comm-hero-deco{position:absolute;left:-10px;top:-10px;font-size:90px;opacity:.06;pointer-events:none;font-family:'Inter',sans-serif;font-weight:800}
+.comm-hero-title{font-size:20px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:6px;line-height:1.3}
+.comm-hero-sub{font-size:13px;opacity:.85;line-height:1.65}
+.comm-feat{display:flex;flex-direction:column;gap:8px;margin:12px}
+.comm-feat-item{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r12);padding:13px 14px;display:flex;align-items:center;gap:12px}
+.comm-feat-ico{font-size:22px;width:36px;flex-shrink:0;text-align:center}
+.comm-feat-title{font-size:14px;font-weight:600;color:var(--tx)}
+.comm-feat-sub{font-size:12px;color:var(--tx2);margin-top:2px}
+.comm-btns{margin:4px 12px 20px;display:flex;flex-direction:column;gap:8px}
+.btn-purple{width:100%;padding:14px;border-radius:var(--r12);background:linear-gradient(135deg,#3C3489,#6B5EC7);color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:700;font-family:inherit;transition:opacity .15s,transform .1s;box-shadow:0 3px 14px rgba(60,52,137,.28)}
+.btn-purple:hover{opacity:.9;transform:translateY(-1px)}
+.btn-outline-p{width:100%;padding:13px;border-radius:var(--r12);background:transparent;color:#3C3489;border:2px solid #3C3489;cursor:pointer;font-size:15px;font-weight:700;font-family:inherit;transition:background .15s}
+.btn-outline-p:hover{background:var(--pl)}
+.trial-badge{display:inline-block;background:rgba(255,255,255,.18);color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;margin-top:6px}
+/* Admin dashboard */
+.admin-hdr{background:linear-gradient(135deg,#3C3489,#6B5EC7);padding:16px 16px 14px;color:#fff}
+.admin-hdr-name{font-size:18px;font-weight:800;font-family:'Inter',sans-serif}
+.admin-hdr-sub{font-size:12px;opacity:.8;margin-top:3px}
+.admin-tabs{display:flex;background:var(--sur);border-bottom:1px solid var(--bd);padding:0 2px}
+.atab{flex:1;padding:11px 2px;text-align:center;font-size:11px;font-weight:500;color:var(--tx2);border:none;background:transparent;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.atab.on{color:#3C3489;border-bottom-color:#3C3489;font-weight:700}
+.admin-panel{padding:14px;display:none}.admin-panel.on{display:block}
+.stat-g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-g-box{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r12);padding:12px 8px;text-align:center}
+.stat-g-num{font-size:24px;font-weight:800;color:#3C3489;font-family:'Inter',sans-serif}
+.stat-g-lbl{font-size:10px;color:var(--tx3);margin-top:2px}
+.code-box{background:var(--pl);border-radius:var(--r12);padding:20px;text-align:center;margin-bottom:14px}
+.code-val{font-size:30px;font-weight:800;color:#3C3489;letter-spacing:5px;font-family:'Inter',sans-serif;margin:8px 0}
+.code-exp{font-size:12px;color:var(--pd);margin-top:4px}
+.skill-tag{display:inline-block;background:var(--gl);color:var(--gd);border-radius:20px;padding:5px 13px;font-size:13px;font-weight:600;margin:3px}
+.mem-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.mem-item:last-child{border-bottom:none}
+/* member comm header */
+.comm-mem-hdr{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+.comm-mem-name{font-size:18px;font-weight:800;color:#3C3489;font-family:'Inter',sans-serif}
+.comm-mem-count{font-size:12px;color:var(--tx2);margin-top:2px}
 
 /* ── RATING ── */
 .rate-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
@@ -433,7 +443,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
     <div class="page" id="pg-req"><div class="lw" id="rlist"></div></div>
     <!-- COMMUNITY -->
     <div class="page" id="pg-comm">
-      <div style="padding:12px" id="commfeed"></div>
+      <div id="commfeed"></div>
     </div>
     <!-- CHAT -->
     <div class="page" id="pg-chat">
@@ -481,6 +491,50 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
         <button class="btn-main" id="pintbtn"></button>
         <button class="btn-sec" onclick="closeOv()">סגור</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE COMMUNITY OVERLAY -->
+<div id="create-comm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('create-comm-overlay')">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:88dvh;overflow-y:auto;padding:0 0 32px;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:16px 16px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">🏢 צור קהילה לארגון</div>
+      <button onclick="closeOverlay('create-comm-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div style="background:var(--pl);border-radius:var(--r12);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--pd);line-height:1.6">
+        🎁 <strong>30 ימי ניסיון חינם</strong> — ללא כרטיס אשראי.<br>אחרי הניסיון ₪299–₪1,499/חודש לפי גודל הארגון.
+      </div>
+      <div class="edit-fg">
+        <label>שם הארגון / הקהילה</label>
+        <input type="text" id="cc-name" placeholder="לדוגמה: Wix, אוניברסיטת ת&quot;א, שכונת פלורנטין...">
+      </div>
+      <div class="edit-fg">
+        <label>תיאור קצר (אופציונלי)</label>
+        <textarea id="cc-desc" placeholder="על מה הקהילה הזו?" style="min-height:70px"></textarea>
+      </div>
+      <button class="btn-purple" id="cc-btn" onclick="createCommunity()">צור קהילה ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOIN COMMUNITY OVERLAY -->
+<div id="join-comm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('join-comm-overlay')">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;padding:0 0 32px;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:16px 16px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">🔐 הצטרף לקהילה</div>
+      <button onclick="closeOverlay('join-comm-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div style="font-size:13px;color:var(--tx2);margin-bottom:14px;line-height:1.6">קיבלת קוד הזמנה מהמנהל שלך? הכנס אותו כאן.</div>
+      <div class="edit-fg">
+        <label>קוד הזמנה</label>
+        <input type="text" id="jc-code" placeholder="לדוגמה: AB12CD34" style="text-align:center;font-size:20px;letter-spacing:4px;font-weight:700" maxlength="8" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <button class="btn-purple" id="jc-btn" onclick="joinCommunity()">הצטרף ✓</button>
     </div>
   </div>
 </div>
@@ -1088,124 +1142,220 @@ function closeChat() {
 }
 
 // ── COMMUNITY ──
+// ── COMMUNITY ──
+let MY_COMMUNITY = null
+
+function openOverlay(id) { const el = document.getElementById(id); el.style.display='flex'; requestAnimationFrame(()=>el.classList.add('on')) }
+function closeOverlay(id) { const el = document.getElementById(id); el.classList.remove('on'); setTimeout(()=>{ el.style.display='none' }, 250) }
+
 async function loadComm() {
   if (!ME) return
   if (!document.getElementById('pg-comm').classList.contains('on')) return
-  const feed = document.getElementById('commfeed')
-  feed.innerHTML = '<div class="loading">טוען...</div>'
-  const { data: posts } = await sb.from('posts')
-    .select('*, author:profiles(name, avatar_url, avatar_initials, avatar_bg, avatar_tc), post_likes(user_id), post_comments(count)')
-    .order('created_at', { ascending: false })
-    .limit(30)
-  const { data: myLikes } = await sb.from('post_likes').select('post_id').eq('user_id', ME.id)
-  const likedSet = new Set((myLikes||[]).map(l => l.post_id))
-  const avMe = ME.avatar_url ? `<img src="${ME.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (ME.avatar_initials || ME.name.substring(0,2))
-  feed.innerHTML = `
-    <div class="comm-composer">
-      <div class="composer-row">
-        <div class="av" style="width:38px;height:38px;font-size:13px;background:${ME.avatar_bg||'#9FE1CB'};color:${ME.avatar_tc||'#085041'};flex-shrink:0">${avMe}</div>
-        <textarea class="composer-inp" id="post-inp" placeholder="שתף עם הקהילה..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
-      </div>
-      <div style="display:flex;justify-content:flex-start;margin-top:10px">
-        <button class="post-btn" onclick="submitPost()">פרסם</button>
-      </div>
-    </div>
-    ${!(posts||[]).length ? '<div class="empty">היה הראשון לפרסם!</div>' :
-      (posts||[]).map(p => renderPost(p, likedSet)).join('')}
-  `
-}
-
-function renderPost(p, likedSet) {
-  const u = p.author || {}
-  const avIn = u.avatar_url ? `<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (u.avatar_initials||u.name?.substring(0,2)||'?')
-  const liked = likedSet.has(p.id)
-  const likesCount = (p.post_likes||[]).length
-  const commentsCount = p.post_comments?.[0]?.count || 0
-  const timeAgo = formatTimeAgo(p.created_at)
-  return `<div class="post-card" id="post-${p.id}">
-    <div class="post-hdr">
-      <div class="av" style="width:38px;height:38px;font-size:13px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avIn}</div>
-      <div><div class="post-uname">${u.name||'משתמש'}</div><div class="post-time">${timeAgo}</div></div>
-    </div>
-    <div class="post-body">${escHtml(p.text)}</div>
-    <div class="post-foot">
-      <button class="pact${liked?' liked':''}" onclick="toggleLike('${p.id}',${liked},'${p.user_id}')" id="like-btn-${p.id}">
-        <svg width="15" height="15" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span id="like-count-${p.id}">${likesCount}</span>
-      </button>
-      <button class="pact" onclick="toggleComments('${p.id}')">
-        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span id="comm-count-${p.id}">${commentsCount}</span>
-      </button>
-    </div>
-    <div class="comments-section" id="comments-${p.id}"></div>
-  </div>`
-}
-
-async function submitPost() {
-  const inp = document.getElementById('post-inp')
-  const text = inp.value.trim()
-  if (!text) { toast('כתוב משהו קודם'); return }
-  const { error } = await sb.from('posts').insert({ user_id: ME.id, text })
-  if (error) { toast('שגיאה: ' + error.message); return }
-  inp.value = ''; inp.style.height = 'auto'
-  toast('פורסם! ✓')
-  loadComm()
-}
-
-async function toggleLike(postId, wasLiked, authorId) {
-  const btn = document.getElementById('like-btn-' + postId)
-  const countEl = document.getElementById('like-count-' + postId)
-  const cur = parseInt(countEl.textContent) || 0
-  if (wasLiked) {
-    await sb.from('post_likes').delete().eq('post_id', postId).eq('user_id', ME.id)
-    btn.classList.remove('liked')
-    btn.querySelector('svg').setAttribute('fill','none')
-    btn.setAttribute('onclick', `toggleLike('${postId}',false,'${authorId}')`)
-    countEl.textContent = Math.max(0, cur - 1)
-  } else {
-    await sb.from('post_likes').insert({ post_id: postId, user_id: ME.id })
-    btn.classList.add('liked')
-    btn.querySelector('svg').setAttribute('fill','currentColor')
-    btn.setAttribute('onclick', `toggleLike('${postId}',true,'${authorId}')`)
-    countEl.textContent = cur + 1
-    if (authorId) await notify(authorId, 'new_like', ME.name + ' אהב את הפוסט שלך ❤️', '')
+  const el = document.getElementById('commfeed')
+  el.innerHTML = '<div class="loading">טוען...</div>'
+  try {
+    const { data: membership } = await withTimeout(
+      sb.from('community_members').select('*, community:communities(*)').eq('user_id', ME.id).maybeSingle(), 7000)
+    if (!membership) { renderCommLanding(); return }
+    MY_COMMUNITY = membership.community
+    if (MY_COMMUNITY.admin_id === ME.id) renderCommAdmin()
+    else renderCommMember()
+  } catch(e) {
+    el.innerHTML = '<div class="empty">שגיאה בטעינה — נסה שוב</div>'
   }
 }
 
-async function toggleComments(postId) {
-  const section = document.getElementById('comments-' + postId)
-  if (section.classList.contains('open')) {
-    section.classList.remove('open')
-    return
-  }
-  section.classList.add('open')
-  section.innerHTML = '<div style="font-size:12px;color:var(--tx3);padding:4px">טוען תגובות...</div>'
-  await renderComments(postId)
-}
-
-async function renderComments(postId) {
-  const section = document.getElementById('comments-' + postId)
-  const { data: comments } = await sb.from('post_comments')
-    .select('*, author:profiles(name, avatar_initials, avatar_bg, avatar_tc, avatar_url)')
-    .eq('post_id', postId).order('created_at', { ascending: true })
-  const avMe = ME.avatar_url ? `<img src="${ME.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (ME.avatar_initials || ME.name.substring(0,2))
-  section.innerHTML = `
-    ${(comments||[]).map(c => {
-      const u = c.author || {}
-      const avIn = u.avatar_url ? `<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (u.avatar_initials||u.name?.substring(0,2)||'?')
-      return `<div class="comment-item">
-        <div class="av" style="width:30px;height:30px;font-size:11px;flex-shrink:0;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avIn}</div>
-        <div class="comment-bubble"><div class="comment-author">${u.name||'משתמש'}</div><div class="comment-text">${escHtml(c.text)}</div></div>
-      </div>`
-    }).join('')}
-    <div class="comment-inp-row">
-      <div class="av" style="width:30px;height:30px;font-size:11px;flex-shrink:0;background:${ME.avatar_bg||'#9FE1CB'};color:${ME.avatar_tc||'#085041'}">${avMe}</div>
-      <input class="comment-inp" id="cinp-${postId}" placeholder="הוסף תגובה..." onkeydown="if(event.key==='Enter')addComment('${postId}')">
-      <button class="comment-send" onclick="addComment('${postId}')">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+function renderCommLanding() {
+  document.getElementById('commfeed').innerHTML = `
+    <div class="comm-hero">
+      <div class="comm-hero-deco">🏢</div>
+      <div style="font-size:36px;margin-bottom:10px">🏢</div>
+      <div class="comm-hero-title">קהילת switch לארגון שלך</div>
+      <div class="comm-hero-sub">תן לעובדים שלך לגלות את הכישורים הנסתרים בפנים — עיצוב, שפות, קוד, ועוד — ולהחליף ביניהם בלי כסף.</div>
+    </div>
+    <div class="comm-feat">
+      <div class="comm-feat-item">
+        <div class="comm-feat-ico">🗺️</div>
+        <div><div class="comm-feat-title">מפת כישורים</div><div class="comm-feat-sub">ראה בדיוק מה כל אחד בארגון מציע — Excel, עיצוב, שפות ועוד</div></div>
+      </div>
+      <div class="comm-feat-item">
+        <div class="comm-feat-ico">📊</div>
+        <div><div class="comm-feat-title">דשבורד מנהל</div><div class="comm-feat-sub">מדדי מעורבות, רשימת חברים, וניהול קוד הזמנה</div></div>
+      </div>
+      <div class="comm-feat-item">
+        <div class="comm-feat-ico">🔐</div>
+        <div><div class="comm-feat-title">קהילה סגורה</div><div class="comm-feat-sub">קוד הזמנה מתחלף כל 7 ימים — רק עובדים שלך בפנים</div></div>
+      </div>
+    </div>
+    <div class="comm-btns">
+      <button class="btn-purple" onclick="openOverlay('create-comm-overlay')">
+        🏢 צור קהילה לארגון שלך
+        <div class="trial-badge">30 יום ניסיון חינם</div>
       </button>
+      <button class="btn-outline-p" onclick="openOverlay('join-comm-overlay')">🔐 הצטרף עם קוד הזמנה</button>
     </div>`
+}
+
+async function renderCommMember() {
+  const el = document.getElementById('commfeed')
+  const { data: members } = await withTimeout(
+    sb.from('community_members').select('user_id').eq('community_id', MY_COMMUNITY.id), 6000)
+  const ids = (members||[]).map(m => m.user_id)
+  const { data: profiles } = await withTimeout(
+    sb.from('profiles').select('*, services(*)').in('id', ids).neq('id', ME.id), 6000)
+  const withSvcs = (profiles||[]).filter(p => (p.services||[]).length > 0)
+  el.innerHTML = `
+    <div class="comm-mem-hdr">
+      <div>
+        <div class="comm-mem-name">${MY_COMMUNITY.name}</div>
+        <div class="comm-mem-count">👥 ${ids.length} חברים בקהילה</div>
+      </div>
+    </div>
+    <div class="feed-list">
+      ${!withSvcs.length ? '<div class="empty" style="margin-top:20px">אין חברים עם שירותים עדיין</div>' :
+        withSvcs.map(u => {
+          const s = u.services[0]
+          const av = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials || u.name.substring(0,2))
+          return `<div class="ocard" onclick="openProf('${u.id}')">
+            <div class="card-left" style="background:${BGS[s.category]||'#F0F0EC'}"><span style="font-size:34px">${EMOJIS[s.category]||'✨'}</span></div>
+            <div class="card-right">
+              <div class="card-user-row">
+                <div class="av" style="width:26px;height:26px;font-size:10px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${av}</div>
+                <div><div class="card-uname">${u.name}</div><div class="card-loc">${u.location||''}</div></div>
+              </div>
+              <div class="card-title">${s.name}${u.services.length>1?`<span style="font-size:11px;color:var(--tx3);font-weight:400;margin-right:4px">+${u.services.length-1}</span>`:''}</div>
+              <div class="card-desc">${s.description||''}</div>
+              <div class="card-foot"><div class="cpill">${s.category}</div></div>
+            </div>
+          </div>`
+        }).join('')}
+    </div>`
+}
+
+async function renderCommAdmin() {
+  const el = document.getElementById('commfeed')
+  const { data: members } = await withTimeout(
+    sb.from('community_members').select('user_id, role').eq('community_id', MY_COMMUNITY.id), 6000)
+  const ids = (members||[]).map(m => m.user_id)
+  const { data: profiles } = await withTimeout(
+    sb.from('profiles').select('name, avatar_initials, avatar_bg, avatar_tc, services(name, category)').in('id', ids), 6000)
+  const skillCount = {}
+  ;(profiles||[]).forEach(p => (p.services||[]).forEach(s => { skillCount[s.category] = (skillCount[s.category]||0)+1 }))
+  const skills = Object.entries(skillCount).sort((a,b)=>b[1]-a[1])
+  const active = (profiles||[]).filter(p=>(p.services||[]).length>0).length
+  const expDate = new Date(MY_COMMUNITY.code_expires_at)
+  const daysLeft = Math.max(0, Math.ceil((expDate - Date.now()) / 86400000))
+  const trialLeft = MY_COMMUNITY.trial_ends_at ? Math.max(0, Math.ceil((new Date(MY_COMMUNITY.trial_ends_at) - Date.now()) / 86400000)) : 0
+  el.innerHTML = `
+    <div class="admin-hdr">
+      <div style="font-size:11px;opacity:.7;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">ניהול קהילה</div>
+      <div class="admin-hdr-name">${MY_COMMUNITY.name}</div>
+      <div class="admin-hdr-sub">${trialLeft>0?`🎁 ניסיון חינם — נותרו ${trialLeft} ימים`:'✓ מנוי פעיל'}</div>
+    </div>
+    <div class="admin-tabs">
+      <button class="atab on" id="atab-stats" onclick="switchAdminTab('stats')">📊 סטטיסטיקות</button>
+      <button class="atab" id="atab-members" onclick="switchAdminTab('members')">👥 חברים</button>
+      <button class="atab" id="atab-code" onclick="switchAdminTab('code')">🔐 קוד כניסה</button>
+    </div>
+    <div class="admin-panel on" id="apanel-stats">
+      <div class="stat-g">
+        <div class="stat-g-box"><div class="stat-g-num">${ids.length}</div><div class="stat-g-lbl">חברים</div></div>
+        <div class="stat-g-box"><div class="stat-g-num">${active}</div><div class="stat-g-lbl">עם שירותים</div></div>
+        <div class="stat-g-box"><div class="stat-g-num">${skills.length}</div><div class="stat-g-lbl">קטגוריות</div></div>
+      </div>
+      <div class="sc">
+        <div class="sc-lbl">מפת כישורים</div>
+        <div style="margin-top:4px">${skills.length ? skills.map(([c,n])=>`<span class="skill-tag">${EMOJIS[c]||'✨'} ${c} · ${n}</span>`).join('') : '<div style="color:var(--tx3);font-size:13px;padding:8px 0">עדיין אין שירותים — הזמן עובדים!</div>'}</div>
+      </div>
+    </div>
+    <div class="admin-panel" id="apanel-members">
+      <div class="sc">
+        <div class="sc-lbl">${ids.length} חברים</div>
+        ${(profiles||[]).map(p=>`
+          <div class="mem-item">
+            <div class="av" style="width:36px;height:36px;font-size:13px;flex-shrink:0;background:${p.avatar_bg||'#9FE1CB'};color:${p.avatar_tc||'#085041'}">${p.avatar_initials||'?'}</div>
+            <div><div style="font-size:14px;font-weight:600;color:var(--tx)">${p.name}</div><div style="font-size:11px;color:var(--tx3)">${(p.services||[]).length} שירותים</div></div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="admin-panel" id="apanel-code">
+      <div class="code-box">
+        <div style="font-size:12px;color:var(--pd);font-weight:600;margin-bottom:4px">קוד הזמנה לעובדים</div>
+        <div class="code-val">${MY_COMMUNITY.invite_code}</div>
+        <div class="code-exp">תוקף עד ${expDate.toLocaleDateString('he-IL')} · ${daysLeft>0?`עוד ${daysLeft} ימים`:'⚠️ פג תוקף'}</div>
+        <button style="margin-top:12px;padding:10px 24px;border-radius:var(--r8);background:#3C3489;color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit" onclick="copyCommCode('${MY_COMMUNITY.invite_code}')">📋 העתק קוד</button>
+      </div>
+      <button class="btn-g" onclick="refreshCode()">🔄 חדש קוד (יהיה בתוקף 7 ימים)</button>
+    </div>`
+}
+
+function switchAdminTab(tab) {
+  document.querySelectorAll('.atab').forEach(t=>t.classList.remove('on'))
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('on'))
+  document.getElementById('atab-'+tab).classList.add('on')
+  document.getElementById('apanel-'+tab).classList.add('on')
+}
+
+function copyCommCode(code) {
+  navigator.clipboard.writeText(code).then(()=>toast('הקוד הועתק! ✓')).catch(()=>{
+    toast('קוד: ' + code)
+  })
+}
+
+async function refreshCode() {
+  if (!MY_COMMUNITY) return
+  const newCode = Math.random().toString(36).substring(2,10).toUpperCase()
+  const newExp = new Date(Date.now() + 7*86400000).toISOString()
+  const { error } = await withTimeout(
+    sb.from('communities').update({ invite_code: newCode, code_expires_at: newExp }).eq('id', MY_COMMUNITY.id), 6000)
+  if (error) { toast('שגיאה: '+error.message); return }
+  MY_COMMUNITY.invite_code = newCode; MY_COMMUNITY.code_expires_at = newExp
+  toast('קוד חודש! ✓'); renderCommAdmin()
+}
+
+async function createCommunity() {
+  const name = document.getElementById('cc-name').value.trim()
+  if (!name) { toast('הכנס שם קהילה'); return }
+  const btn = document.getElementById('cc-btn')
+  btn.disabled = true; btn.textContent = 'יוצר...'
+  try {
+    const code = Math.random().toString(36).substring(2,10).toUpperCase()
+    const { data: comm, error } = await withTimeout(
+      sb.from('communities').insert({ name, description: document.getElementById('cc-desc').value.trim(), admin_id: ME.id, invite_code: code }).select().single(), 7000)
+    if (error) throw error
+    await withTimeout(sb.from('community_members').insert({ community_id: comm.id, user_id: ME.id, role: 'admin' }), 6000)
+    closeOverlay('create-comm-overlay')
+    toast('הקהילה נוצרה! ✓')
+    loadComm()
+  } catch(e) {
+    toast('שגיאה: '+e.message)
+    btn.disabled = false; btn.textContent = 'צור קהילה ✓'
+  }
+}
+
+async function joinCommunity() {
+  const code = document.getElementById('jc-code').value.trim().toUpperCase()
+  if (!code) { toast('הכנס קוד הזמנה'); return }
+  const btn = document.getElementById('jc-btn')
+  btn.disabled = true; btn.textContent = 'מחפש...'
+  try {
+    const { data: comm } = await withTimeout(
+      sb.from('communities').select('*').eq('invite_code', code).maybeSingle(), 6000)
+    if (!comm) { toast('קוד לא נמצא — בדוק שוב'); btn.disabled=false; btn.textContent='הצטרף ✓'; return }
+    if (new Date(comm.code_expires_at) < new Date()) { toast('הקוד פג תוקף — בקש קוד חדש מהמנהל'); btn.disabled=false; btn.textContent='הצטרף ✓'; return }
+    const { error } = await withTimeout(
+      sb.from('community_members').insert({ community_id: comm.id, user_id: ME.id, role: 'member' }), 6000)
+    if (error) {
+      toast(error.code==='23505' ? 'כבר חבר בקהילה זו!' : 'שגיאה: '+error.message)
+      btn.disabled=false; btn.textContent='הצטרף ✓'; return
+    }
+    closeOverlay('join-comm-overlay')
+    toast('הצטרפת לקהילה! ✓')
+    loadComm()
+  } catch(e) {
+    toast('שגיאה: '+e.message)
+    btn.disabled=false; btn.textContent='הצטרף ✓'
+  }
 }
 
 async function addComment(postId) {
