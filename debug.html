@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>debug</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+body{font-family:monospace;padding:20px;background:#111;color:#0f0;font-size:13px}
+.ok{color:#0f0}.err{color:#f44}.warn{color:#ff0}
+p{margin:4px 0;word-break:break-all}
+</style>
+</head>
+<body>
+<p class="warn">⏳ מריץ בדיקות...</p>
+<div id="out"></div>
+<script>
+const out = document.getElementById('out')
+function log(msg, cls='ok') {
+  const p = document.createElement('p')
+  p.className = cls
+  p.textContent = msg
+  out.appendChild(p)
+}
+
+const SB_URL = 'https://ubrsnymjvgasneeuqewv.supabase.co'
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs'
+
+log('✓ מאתחל Supabase client...')
+const sb = supabase.createClient(SB_URL, SB_KEY)
+log('✓ Client נוצר')
+
+async function run() {
+  // 1. Check session
+  log('--- בדיקת session ---', 'warn')
+  try {
+    const { data, error } = await sb.auth.getSession()
+    if (error) { log('✗ getSession error: ' + JSON.stringify(error), 'err'); }
+    else if (!data?.session) { log('✗ אין session — המשתמש לא מחובר', 'err'); }
+    else {
+      log('✓ session קיים: user_id = ' + data.session.user.id)
+      log('✓ email = ' + data.session.user.email)
+      log('✓ expires_at = ' + new Date(data.session.expires_at * 1000).toISOString())
+    }
+  } catch(e) { log('✗ exception: ' + e.message, 'err') }
+
+  // 2. Query profiles (no auth)
+  log('--- בדיקת profiles (anon) ---', 'warn')
+  try {
+    const { data, error } = await sb.from('profiles').select('id,name').limit(3)
+    if (error) { log('✗ profiles error: ' + JSON.stringify(error), 'err') }
+    else { log('✓ profiles returned: ' + data.length + ' rows'); data.forEach(r => log('  ' + r.name + ' | ' + r.id)) }
+  } catch(e) { log('✗ exception: ' + e.message, 'err') }
+
+  // 3. Query profiles with services
+  log('--- בדיקת profiles + services ---', 'warn')
+  try {
+    const { data, error } = await sb.from('profiles').select('name,services(name)').limit(3)
+    if (error) { log('✗ error: ' + JSON.stringify(error), 'err') }
+    else { data.forEach(r => log('  ' + r.name + ': ' + r.services.length + ' services')) }
+  } catch(e) { log('✗ exception: ' + e.message, 'err') }
+
+  // 4. Query own profile (if logged in)
+  log('--- בדיקת own profile ---', 'warn')
+  try {
+    const { data: sd } = await sb.auth.getSession()
+    if (!sd?.session?.user) { log('✗ לא מחובר — דלג', 'err'); return }
+    const uid = sd.session.user.id
+    const { data, error } = await sb.from('profiles').select('*,services(*)').eq('id', uid).single()
+    if (error) { log('✗ own profile error: ' + JSON.stringify(error), 'err') }
+    else if (!data) { log('✗ אין פרופיל עבור uid ' + uid, 'err') }
+    else { log('✓ פרופיל נמצא: ' + data.name + ' | onboarded: ' + data.onboarded) }
+  } catch(e) { log('✗ exception: ' + e.message, 'err') }
+
+  log('--- סיום ---', 'warn')
+}
+
+run()
+</script>
+</body>
+</html>
