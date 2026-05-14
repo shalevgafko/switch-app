@@ -502,7 +502,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
   <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:90dvh;overflow-y:auto;padding:0 0 32px;animation:sup .25s cubic-bezier(.32,.72,0,1)">
     <div class="handle"></div>
     <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">📋 צור הסכם דיגיטלי</div>
+      <div id="deal-overlay-title" style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">📋 צור הסכם דיגיטלי</div>
       <button onclick="closeOverlay('deal-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
     </div>
     <div style="padding:14px 16px">
@@ -524,7 +524,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
       <div style="background:var(--bg);border-radius:var(--r8);padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--tx2);line-height:1.6">
         📧 יום לפני תאריך היעד תישלח תזכורת למייל לשני הצדדים.
       </div>
-      <button class="btn-g" id="deal-create-btn" onclick="createDeal()">שלח הסכם לאישור ✓</button>
+      <button class="btn-g" id="deal-submit-btn" onclick="createDeal()">שלח הסכם לאישור ✓</button>
     </div>
   </div>
 </div>
@@ -1219,6 +1219,7 @@ function closeChat() {
 
 // ── DEALS ──
 let activeDeal = null
+let dealEditMode = false
 
 let dealCountdownInterval = null
 
@@ -1246,6 +1247,8 @@ async function renderDealBar(reqId) {
   const otherDone = iAmCreator ? deal.other_done : deal.creator_done
   const deadlinePassed = deal.deadline && new Date(deal.deadline) < new Date()
   const deadlineStr = deal.deadline ? new Date(deal.deadline).toLocaleDateString('he-IL') : ''
+  // who last submitted/edited — that person waits; the other approves
+  const iAmWaiting = deal.last_editor_id ? deal.last_editor_id === ME.id : iAmCreator
 
   // 1-day reminder (client-side)
   if (deal.status === 'active' && deal.deadline && !deadlinePassed) {
@@ -1255,13 +1258,16 @@ async function renderDealBar(reqId) {
 
   if (deal.status === 'pending_approval') {
     const offerLines = `<div style="font-size:12px;color:var(--tx2);margin:6px 0 10px;line-height:1.7">
-      ${iAmCreator ? '👤 אני' : '👤 הצד השני'} מציע: <strong>${escHtml(iAmCreator ? deal.my_offer||'' : deal.their_offer||'')}</strong><br>
-      ${iAmCreator ? '👤 הצד השני' : '👤 אני'} מציע: <strong>${escHtml(iAmCreator ? deal.their_offer||'' : deal.my_offer||'')}</strong><br>
+      👤 אני מציע: <strong>${escHtml(iAmWaiting ? deal.my_offer||'' : deal.their_offer||'')}</strong><br>
+      👤 הצד השני מציע: <strong>${escHtml(iAmWaiting ? deal.their_offer||'' : deal.my_offer||'')}</strong><br>
       📅 תאריך יעד: <strong>${deadlineStr}</strong>
     </div>`
-    if (iAmCreator) {
+    if (iAmWaiting) {
       bar.innerHTML = `<div style="background:#FFF8E7;padding:10px 14px;border-bottom:1px solid var(--bdm)">
-        <div style="font-size:13px;font-weight:600;color:#633806">⏳ ממתין לאישור הצד השני</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="font-size:13px;font-weight:600;color:#633806">⏳ ממתין לאישור הצד השני</div>
+          <button onclick="openDealEdit()" style="background:none;border:1px solid #BA7517;color:#BA7517;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✏️ ערוך</button>
+        </div>
         ${offerLines}
       </div>`
     } else {
@@ -1298,7 +1304,10 @@ async function renderDealBar(reqId) {
       bar.innerHTML = `<div style="background:var(--gl);padding:10px 14px;border-bottom:1px solid var(--bdm)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span style="font-size:12px;font-weight:700;color:var(--gd)">✅ הסכם פעיל</span>
-          ${countdown ? `<span id="deal-countdown" style="font-size:12px;font-weight:700;color:${countdownColor}">⏱️ ${countdown}</span>` : ''}
+          <div style="display:flex;align-items:center;gap:8px">
+            ${countdown ? `<span id="deal-countdown" style="font-size:12px;font-weight:700;color:${countdownColor}">⏱️ ${countdown}</span>` : ''}
+            <button onclick="openDealEdit()" style="background:none;border:1px solid var(--gd);color:var(--gd);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✏️ שנה</button>
+          </div>
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="markDone('${deal.id}')" style="flex:1;padding:9px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">✅ ביצעתי את חלקי</button>
@@ -1326,9 +1335,27 @@ async function renderDealBar(reqId) {
 function openDealCreate() {
   if (!activeChatReqId) return
   if (activeDeal) { toast('כבר קיים הסכם לשיחה זו'); return }
+  dealEditMode = false
+  document.getElementById('deal-overlay-title').textContent = '📋 צור הסכם דיגיטלי'
+  document.getElementById('deal-submit-btn').textContent = 'שלח הסכם לאישור ✓'
   const today = new Date().toISOString().split('T')[0]
   document.getElementById('deal-deadline').min = today
   document.getElementById('deal-deadline').value = ''
+  document.getElementById('deal-my-offer').value = ''
+  document.getElementById('deal-their-offer').value = ''
+  openOverlay('deal-overlay')
+}
+
+function openDealEdit() {
+  if (!activeDeal) return
+  dealEditMode = true
+  document.getElementById('deal-overlay-title').textContent = '✏️ ערוך הסכם'
+  document.getElementById('deal-submit-btn').textContent = 'עדכן ושלח לאישור מחדש ✓'
+  const today = new Date().toISOString().split('T')[0]
+  document.getElementById('deal-deadline').min = today
+  document.getElementById('deal-my-offer').value = activeDeal.my_offer || ''
+  document.getElementById('deal-their-offer').value = activeDeal.their_offer || ''
+  document.getElementById('deal-deadline').value = activeDeal.deadline ? activeDeal.deadline.split('T')[0] : ''
   openOverlay('deal-overlay')
 }
 
@@ -1340,15 +1367,40 @@ async function createDeal() {
   if (!theirOffer) { toast('מה הצד השני מציע?'); return }
   if (!deadlineVal){ toast('בחר תאריך יעד'); return }
   if (!activeChatReqId || !activeChatOtherId) return
-  const btn = document.getElementById('deal-create-btn')
-  btn.disabled = true; btn.textContent = 'שולח...'
+  const btn = document.getElementById('deal-submit-btn')
   const deadline = new Date(deadlineVal + 'T23:59:00').toISOString()
+  const dl = new Date(deadline).toLocaleDateString('he-IL')
+
+  if (dealEditMode && activeDeal) {
+    btn.disabled = true; btn.textContent = 'מעדכן...'
+    try {
+      const { error } = await withTimeout(
+        sb.from('deals').update({
+          my_offer: myOffer, their_offer: theirOffer, deadline,
+          status: 'pending_approval', last_editor_id: ME.id,
+          creator_done: false, other_done: false
+        }).eq('id', activeDeal.id), 7000)
+      if (error) throw error
+      await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: `✏️ עדכנתי את ההסכם — תאריך יעד חדש: ${dl}` })
+      await notify(activeChatOtherId, 'deal_edited', ME.name + ' עדכן את ההסכם ✏️', `${myOffer} ↔ ${theirOffer} | יעד: ${dl}`)
+      closeOverlay('deal-overlay')
+      toast('ההסכם עודכן — ממתין לאישור מחדש ✓')
+      await renderDealBar(activeChatReqId)
+      await renderMsgs()
+    } catch(e) {
+      toast('שגיאה: ' + e.message)
+    } finally {
+      btn.disabled = false; btn.textContent = 'עדכן ושלח לאישור מחדש ✓'
+    }
+    return
+  }
+
+  btn.disabled = true; btn.textContent = 'שולח...'
   const terms = `אני מציע: ${myOffer}\nהצד השני מציע: ${theirOffer}`
   try {
     const { error } = await withTimeout(
-      sb.from('deals').insert({ request_id: activeChatReqId, creator_id: ME.id, other_id: activeChatOtherId, terms, my_offer: myOffer, their_offer: theirOffer, deadline }), 7000)
+      sb.from('deals').insert({ request_id: activeChatReqId, creator_id: ME.id, other_id: activeChatOtherId, terms, my_offer: myOffer, their_offer: theirOffer, deadline, last_editor_id: ME.id }), 7000)
     if (error) throw error
-    const dl = new Date(deadline).toLocaleDateString('he-IL')
     await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: `📋 שלחתי הסכם לאישורך — תאריך יעד: ${dl}` })
     await notify(activeChatOtherId, 'new_deal', ME.name + ' שלח הסכם לאישורך 📋', `${myOffer} ↔ ${theirOffer} | יעד: ${dl}`)
     closeOverlay('deal-overlay')
@@ -1365,7 +1417,7 @@ async function createDeal() {
 }
 
 async function approveDeal(dealId) {
-  await withTimeout(sb.from('deals').update({ other_approved: true, status: 'active' }).eq('id', dealId), 6000)
+  await withTimeout(sb.from('deals').update({ other_approved: true, status: 'active', last_editor_id: null }).eq('id', dealId), 6000)
   await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '✅ אישרתי את ההסכם — נתחיל!' })
   if (activeChatOtherId) await notify(activeChatOtherId, 'deal_approved', ME.name + ' אישר את ההסכם ✅', 'ההסכם פעיל — בהצלחה!')
   toast('ההסכם אושר! ✓')
