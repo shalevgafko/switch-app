@@ -1,4 +1,4 @@
-const CACHE = 'switch-v2'
+const CACHE = 'switch-v3'
 const STATIC = [
   '/switch-app/icon-192.png',
   '/switch-app/icon-512.png',
@@ -17,11 +17,14 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
   if (!url.origin.includes('github.io') && !url.origin.includes('googleapis') && !url.origin.includes('jsdelivr')) return
 
-  // HTML — network first, fallback to cache (ensures users always get latest code)
+  // HTML — network first, fallback to cache
   if (url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     e.respondWith(
       fetch(e.request).then(res => {
-        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()))
+        if (res.ok) {
+          const clone = res.clone()
+          caches.open(CACHE).then(c => c.put(e.request, clone))
+        }
         return res
       }).catch(() => caches.match(e.request))
     )
@@ -31,7 +34,10 @@ self.addEventListener('fetch', e => {
   // Static assets — cache first
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-      if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()))
+      if (res.ok) {
+        const clone = res.clone()
+        caches.open(CACHE).then(c => c.put(e.request, clone))
+      }
       return res
     }))
   )

@@ -767,6 +767,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
     loadFeed()
     subscribeNotifs()
     loadNotifCount()
+    // Refresh current tab content now that ME is loaded
+    const activePage = document.querySelector('.page.on')?.id
+    if (activePage === 'pg-prof') loadProf()
+    else if (activePage === 'pg-comm') loadComm()
+    else if (activePage === 'pg-req') loadReqs()
   } else {
     ME = null
     document.getElementById('auth-screen').classList.remove('hide')
