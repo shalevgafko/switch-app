@@ -1,4 +1,4 @@
-const CACHE = 'switch-v3'
+const CACHE = 'switch-v4'
 const STATIC = [
   '/switch-app/icon-192.png',
   '/switch-app/icon-512.png',
