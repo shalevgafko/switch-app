@@ -763,22 +763,19 @@ sb.auth.onAuthStateChange(async (event, session) => {
       }
       av.style.background = ME?.avatar_bg || '#9FE1CB'
       av.style.color = ME?.avatar_tc || '#085041'
-      if (!ME?.onboarded) {
-        // New user: show welcome, closeWelcome() triggers onboarding
-        showWelcome(ME?.name || '')
+      if (ME && !ME.onboarded) {
+        showWelcome(ME.name || '')
       }
-      // Returning users (onboarded=true) go directly to the app
     } catch(e) {
       console.error('profile load error:', e)
+      toast('שגיאה בטעינת הפרופיל — רענן את הדף')
     }
     loadFeed()
     subscribeNotifs()
     loadNotifCount()
-    // Refresh current tab content now that ME is loaded
-    const activePage = document.querySelector('.page.on')?.id
-    if (activePage === 'pg-prof') loadProf()
-    else if (activePage === 'pg-comm') loadComm()
-    else if (activePage === 'pg-req') loadReqs()
+    loadProf()
+    loadComm()
+    loadReqs()
   } else {
     ME = null
     document.getElementById('auth-screen').classList.remove('hide')
@@ -827,45 +824,49 @@ async function loadFeed() {
   const feedEl = document.getElementById('feed')
   if (!feedEl) return
   feedEl.innerHTML = skelFeed()
-  const q = (document.getElementById('si').value || '').trim()
-  let query = sb.from('profiles').select('*, services(*)')
-  if (ME?.id) query = query.neq('id', ME.id)
-  let { data: users } = await query.order('rating', { ascending: false })
-  if (!users) users = []
-  let list = users.filter(u => {
-    const svcs = u.services || []
-    const matchCat = activeCat === 'הכל' || svcs.some(s => s.category === activeCat)
-    const matchQ = !q || u.name.toLowerCase().includes(q.toLowerCase()) || svcs.some(s => s.name.includes(q))
-    return matchCat && matchQ && svcs.length > 0
-  })
-  if (!list.length) { feedEl.innerHTML = '<div class="empty">לא נמצאו הצעות</div>'; return }
-  feedEl.innerHTML = list.map(u => {
-    const svcs = u.services || []
-    const first = svcs[0]; if (!first) return ''
-    const emoji   = EMOJIS[first.category] || '✨'
-    const bg      = BGS[first.category]    || '#F0F0EC'
-    const photos  = first.photos || []
-    const imgInner = photos.length
-      ? `<img src="${photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
-      : `<span style="font-size:36px">${emoji}</span>`
-    const avInner = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials || u.name.substring(0,2))
-    return `<div class="ocard" onclick="openProf('${u.id}')">
-      <div class="card-left" style="background:${bg}">${imgInner}</div>
-      <div class="card-right">
-        <div class="card-user-row">
-          <div class="av" style="width:26px;height:26px;font-size:10px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avInner}</div>
-          <div><div class="card-uname">${u.name}</div><div class="card-loc">${u.location||''}</div></div>
+  try {
+    const q = (document.getElementById('si').value || '').trim()
+    let query = sb.from('profiles').select('*, services(*)')
+    if (ME?.id) query = query.neq('id', ME.id)
+    let { data: users } = await query.order('rating', { ascending: false })
+    if (!users) users = []
+    let list = users.filter(u => {
+      const svcs = u.services || []
+      const matchCat = activeCat === 'הכל' || svcs.some(s => s.category === activeCat)
+      const matchQ = !q || u.name.toLowerCase().includes(q.toLowerCase()) || svcs.some(s => s.name.includes(q))
+      return matchCat && matchQ && svcs.length > 0
+    })
+    if (!list.length) { feedEl.innerHTML = '<div class="empty">לא נמצאו הצעות</div>'; return }
+    feedEl.innerHTML = list.map(u => {
+      const svcs = u.services || []
+      const first = svcs[0]; if (!first) return ''
+      const emoji   = EMOJIS[first.category] || '✨'
+      const bg      = BGS[first.category]    || '#F0F0EC'
+      const photos  = first.photos || []
+      const imgInner = photos.length
+        ? `<img src="${photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
+        : `<span style="font-size:36px">${emoji}</span>`
+      const avInner = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials || u.name.substring(0,2))
+      return `<div class="ocard" onclick="openProf('${u.id}')">
+        <div class="card-left" style="background:${bg}">${imgInner}</div>
+        <div class="card-right">
+          <div class="card-user-row">
+            <div class="av" style="width:26px;height:26px;font-size:10px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avInner}</div>
+            <div><div class="card-uname">${u.name}</div><div class="card-loc">${u.location||''}</div></div>
+          </div>
+          <div class="card-title">${first.name}${svcs.length>1?`<span style="font-size:11px;color:var(--tx3);font-weight:400;margin-right:4px">+${svcs.length-1}</span>`:''}</div>
+          <div class="card-desc">${first.description||''}</div>
+          <div class="card-foot">
+            <div class="cpill">${first.category}</div>
+            <div class="cstar">★ ${u.rating||5}</div>
+            <div style="font-size:11px;color:var(--tx3)">${u.deals_count||0} עסקאות</div>
+          </div>
         </div>
-        <div class="card-title">${first.name}${svcs.length>1?`<span style="font-size:11px;color:var(--tx3);font-weight:400;margin-right:4px">+${svcs.length-1}</span>`:''}</div>
-        <div class="card-desc">${first.description||''}</div>
-        <div class="card-foot">
-          <div class="cpill">${first.category}</div>
-          <div class="cstar">★ ${u.rating||5}</div>
-          <div style="font-size:11px;color:var(--tx3)">${u.deals_count||0} עסקאות</div>
-        </div>
-      </div>
-    </div>`
-  }).filter(Boolean).join('')
+      </div>`
+    }).filter(Boolean).join('')
+  } catch(e) {
+    feedEl.innerHTML = '<div class="empty" style="flex-direction:column;gap:10px"><div>שגיאה בטעינה</div><button class="btn-sec" onclick="loadFeed()" style="width:auto;padding:8px 20px">נסה שוב</button></div>'
+  }
 }
 
 // ── PROFILE SHEET (other users) ──
@@ -926,6 +927,7 @@ async function sendReq(toId, toName) {
 // ── REQUESTS ──
 async function loadReqs() {
   if (!ME) return
+  if (!document.getElementById('pg-req').classList.contains('on')) return
   const { data } = await sb.from('requests')
     .select('*, from_profile:profiles!requests_from_user_fkey(*, services(*)), to_profile:profiles!requests_to_user_fkey(*, services(*))')
     .or(`from_user.eq.${ME.id},to_user.eq.${ME.id}`)
@@ -1060,6 +1062,7 @@ function closeChat() {
 // ── COMMUNITY ──
 async function loadComm() {
   if (!ME) return
+  if (!document.getElementById('pg-comm').classList.contains('on')) return
   const feed = document.getElementById('commfeed')
   feed.innerHTML = '<div class="loading">טוען...</div>'
   const { data: posts } = await sb.from('posts')
@@ -1195,9 +1198,17 @@ async function addComment(postId) {
 
 // ── MY PROFILE ──
 async function loadProf() {
-  if (!ME) return
+  if (!document.getElementById('pg-prof').classList.contains('on')) return
+  const profpage = document.getElementById('profpage')
+  if (!ME) {
+    profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--tx3)"><div style="font-size:36px;margin-bottom:12px">👤</div><div style="font-size:15px">טוען פרופיל...</div></div>'
+    return
+  }
   const { data: me } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
-  if (!me) { toast('שגיאה בטעינת הפרופיל — רענן'); return }
+  if (!me) {
+    profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px"><div style="color:var(--tx3)">שגיאה בטעינת הפרופיל</div><button class="btn-g" onclick="loadProf()" style="width:auto;padding:10px 24px">נסה שוב</button></div>'
+    return
+  }
   ME = me
   const svcs = me.services || []
   const avSrc = me.avatar_url ? `<img src="${me.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (me.avatar_initials||me.name.substring(0,2))
