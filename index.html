@@ -533,10 +533,25 @@ if (location.protocol === 'file:') {
 }
 const SB_URL = 'https://ubrsnymjvgasneeuqewv.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs'
+
+// Clear expired session before createClient so the client doesn't hang trying to refresh it
+;(function() {
+  try {
+    const k = Object.keys(localStorage).find(k => k.startsWith('sb-') || k.includes('supabase'))
+    if (k) {
+      const s = JSON.parse(localStorage.getItem(k) || '{}')
+      if (s.expires_at && s.expires_at * 1000 < Date.now()) {
+        localStorage.removeItem(k)
+      }
+    }
+  } catch(e) {}
+})()
+
 const sb = supabase.createClient(SB_URL, SB_KEY)
 
 // ── STATE ──
 let ME = null
+let authReady = false
 let activeCat = 'הכל'
 let viewUserId = null
 let activeChatReqId = null
@@ -733,6 +748,7 @@ const AV_BGS = ['#9FE1CB','#CECBF6','#FAC775','#FCA5A5','#93C5FD','#6EE7B7']
 const AV_TCS = ['#085041','#3C3489','#633806','#991B1B','#1E40AF','#065F46']
 
 sb.auth.onAuthStateChange(async (event, session) => {
+  authReady = true
   if (session?.user) {
     // Show app immediately — don't wait for profile fetch
     document.getElementById('auth-screen').classList.add('hide')
@@ -780,6 +796,9 @@ sb.auth.onAuthStateChange(async (event, session) => {
     ME = null
     document.getElementById('auth-screen').classList.remove('hide')
     document.getElementById('app-screen').classList.add('hide')
+    // Update profile page in case it was loading
+    const pp = document.getElementById('profpage')
+    if (pp) pp.innerHTML = ''
   }
 })
 
@@ -1200,18 +1219,18 @@ async function addComment(postId) {
 async function loadProf() {
   if (!document.getElementById('pg-prof').classList.contains('on')) return
   const profpage = document.getElementById('profpage')
-  profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--tx3)"><div style="font-size:36px;margin-bottom:12px">👤</div><div style="font-size:15px">טוען...</div></div>'
 
-  // Get user ID from ME if loaded, otherwise directly from auth session
-  let userId = ME?.id
-  if (!userId) {
-    const { data: sd } = await sb.auth.getSession()
-    if (!sd?.session?.user) {
+  if (!ME) {
+    if (authReady) {
       profpage.innerHTML = '<div style="padding:40px;text-align:center;color:var(--tx3)">לא מחובר</div>'
-      return
+    } else {
+      profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--tx3)"><div style="font-size:36px;margin-bottom:12px">👤</div><div style="font-size:15px">טוען...</div></div>'
     }
-    userId = sd.session.user.id
+    return
   }
+
+  profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--tx3)"><div style="font-size:36px;margin-bottom:12px">👤</div><div style="font-size:15px">טוען...</div></div>'
+  const userId = ME.id
 
   const { data: me, error } = await sb.from('profiles').select('*, services(*)').eq('id', userId).single()
   if (!me) {
