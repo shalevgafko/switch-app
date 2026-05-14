@@ -452,8 +452,10 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
         <div class="chdr">
           <button class="backb" onclick="closeChat()"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg> חזור</button>
           <div id="chdr-av" class="av" style="width:32px;height:32px;font-size:12px"></div>
-          <div><div style="font-size:14px;font-weight:600" id="chdr-name"></div><div style="font-size:11px;color:var(--tx2)" id="chdr-sub"></div></div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:600" id="chdr-name"></div><div style="font-size:11px;color:var(--tx2)" id="chdr-sub"></div></div>
+          <button onclick="openDealCreate()" style="background:var(--gl);border:none;border-radius:var(--r8);padding:6px 10px;font-size:12px;font-weight:600;color:var(--gd);cursor:pointer;white-space:nowrap">📋 הסכם</button>
         </div>
+        <div id="deal-bar"></div>
         <div class="msgs" id="msgs"></div>
         <div class="cinp">
           <input type="text" id="msgi" placeholder="כתוב הודעה..." onkeydown="if(event.key==='Enter')sendMsg()">
@@ -491,6 +493,46 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
         <button class="btn-main" id="pintbtn"></button>
         <button class="btn-sec" onclick="closeOv()">סגור</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEAL CREATE OVERLAY -->
+<div id="deal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('deal-overlay')">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:90dvh;overflow-y:auto;padding:0 0 32px;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">📋 צור הסכם דיגיטלי</div>
+      <button onclick="closeOverlay('deal-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div style="padding:14px 16px">
+      <div style="background:#FFF8E7;border-radius:var(--r12);padding:12px 14px;margin-bottom:14px;font-size:12px;color:#633806;line-height:1.7">
+        ⚠️ <strong>ההסכם מחייב את שני הצדדים.</strong> אי-ביצוע העסקה עלול לגרור אזהרה, חסימה זמנית או קבועה לפי מדיניות switch.
+      </div>
+      <div class="edit-fg">
+        <label>תנאי ההסכם — מה כל צד מתחייב לספק?</label>
+        <textarea id="deal-terms" placeholder="לדוגמה:&#10;אני (שלו) — מספק עיצוב לוגו תוך 5 ימים.&#10;הצד השני (דנה) — מספקת 3 שיעורי ספרדית של שעה." style="min-height:110px"></textarea>
+      </div>
+      <button class="btn-g" id="deal-create-btn" onclick="createDeal()">שלח הסכם לאישור ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT OVERLAY -->
+<div id="report-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('report-overlay')">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:88dvh;overflow-y:auto;padding:0 0 32px;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">⚠️ דווח על בעיה בעסקה</div>
+      <button onclick="closeOverlay('report-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div style="padding:14px 16px">
+      <div style="font-size:13px;color:var(--tx2);margin-bottom:12px;line-height:1.6">תאר מה לא בוצע כמו שצריך. הדיווח ייבדק על ידי צוות switch.</div>
+      <div class="edit-fg">
+        <label>תיאור הבעיה</label>
+        <textarea id="report-reason" placeholder="מה קרה? מה הצד השני לא עמד בו?" style="min-height:90px"></textarea>
+      </div>
+      <button style="width:100%;padding:13px;border-radius:var(--r12);background:#c00;color:#fff;border:none;cursor:pointer;font-size:15px;font-weight:700;font-family:inherit" id="report-btn" onclick="submitReport()">שלח דיווח</button>
     </div>
   </div>
 </div>
@@ -822,6 +864,22 @@ sb.auth.onAuthStateChange(async (event, session) => {
     try {
       const pr = await withTimeout(sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single(), 7000)
       let profile = pr.data
+      // Check ban status
+      if (profile?.is_banned) {
+        await sb.auth.signOut()
+        document.getElementById('auth-screen').classList.remove('hide')
+        document.getElementById('app-screen').classList.add('hide')
+        toast('החשבון שלך חסום לצמיתות. לפרטים: support@switch-app.co')
+        return
+      }
+      if (profile?.ban_until && new Date(profile.ban_until) > new Date()) {
+        const until = new Date(profile.ban_until).toLocaleString('he-IL')
+        await sb.auth.signOut()
+        document.getElementById('auth-screen').classList.remove('hide')
+        document.getElementById('app-screen').classList.add('hide')
+        toast(`חשבונך חסום זמנית עד ${until}`)
+        return
+      }
       if (!profile) {
         const meta = session.user.user_metadata || {}
         const name = meta.full_name || session.user.email.split('@')[0]
@@ -1044,7 +1102,7 @@ async function loadReqs() {
       const u = r.from_user === ME.id ? r.to_profile : r.from_profile
       const otherId = r.from_user === ME.id ? r.to_user : r.from_user
       const avIn = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials||u.name.substring(0,2))
-      return `<div class="rcard" style="border-color:var(--g)"><div class="rrow"><div class="av" style="width:40px;height:40px;font-size:13px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avIn}</div><div style="flex:1"><div class="rname">${u.name}</div></div><div class="spill spo">Match ✓</div></div><div class="rbtns"><button class="bchat" onclick="openChatByUserId('${otherId}')">פתח צ'אט</button><button class="bchat" style="border-color:var(--am);color:var(--am)" onclick="openRate('${r.id}','${otherId}','${u.name}')">דרג ★</button></div></div>`
+      return `<div class="rcard" style="border-color:var(--g)"><div class="rrow"><div class="av" style="width:40px;height:40px;font-size:13px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avIn}</div><div style="flex:1"><div class="rname">${u.name}</div><div class="rsub">${u.location||''}</div></div><div class="spill spo">Match ✓</div></div><div class="rbtns"><button class="bchat" style="flex:1" onclick="openChatByUserId('${otherId}')">💬 פתח צ'אט</button></div></div>`
     }).join('')
   }
   if (!html) html = '<div class="empty">אין בקשות עדיין</div>'
@@ -1081,6 +1139,12 @@ async function submitRate() {
 
 // ── CHAT ──
 async function openChatByUserId(userId) {
+  // Switch to chat tab WITHOUT triggering loadChatList (which would hide cwin)
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'))
+  document.querySelectorAll('.nbt').forEach(b => b.classList.remove('on'))
+  document.getElementById('pg-chat').classList.add('on')
+  document.getElementById('nbt-chat').classList.add('on')
+
   const { data: req } = await sb.from('requests').select('id')
     .or(`and(from_user.eq.${ME.id},to_user.eq.${userId}),and(from_user.eq.${userId},to_user.eq.${ME.id})`)
     .eq('status','confirmed').maybeSingle()
@@ -1094,8 +1158,8 @@ async function openChatByUserId(userId) {
   document.getElementById('chdr-sub').textContent  = u.location || ''
   document.getElementById('clist-view').classList.add('hide')
   document.getElementById('cwin').classList.remove('hide')
-  goTab('chat')
   await renderMsgs()
+  await renderDealBar(req.id)
   if (chatSub) sb.removeChannel(chatSub)
   chatSub = sb.channel('msgs-' + req.id)
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages', filter:`request_id=eq.${req.id}` }, () => renderMsgs())
@@ -1134,11 +1198,174 @@ async function loadChatList() {
   }).join('')
 }
 function closeChat() {
-  activeChatReqId = null
+  activeChatReqId = null; activeChatOtherId = null
   if (chatSub) { sb.removeChannel(chatSub); chatSub = null }
   document.getElementById('clist-view').classList.remove('hide')
   document.getElementById('cwin').classList.add('hide')
+  document.getElementById('deal-bar').innerHTML = ''
   loadChatList()
+}
+
+// ── DEALS ──
+let activeDeal = null
+
+async function renderDealBar(reqId) {
+  const bar = document.getElementById('deal-bar')
+  if (!bar) return
+  const { data: deal } = await withTimeout(
+    sb.from('deals').select('*').eq('request_id', reqId).maybeSingle(), 6000)
+  activeDeal = deal
+  if (!deal) { bar.innerHTML = ''; return }
+
+  const iAmCreator = deal.creator_id === ME.id
+  const myDone = iAmCreator ? deal.creator_done : deal.other_done
+  const otherDone = iAmCreator ? deal.other_done : deal.creator_done
+
+  if (deal.status === 'pending_approval') {
+    if (iAmCreator) {
+      bar.innerHTML = `<div style="background:#FFF8E7;padding:10px 14px;border-bottom:1px solid var(--bdm);font-size:13px;color:#633806;display:flex;align-items:center;gap:8px">⏳ <span>ממתין לאישור הצד השני</span></div>`
+    } else {
+      bar.innerHTML = `<div style="background:var(--gl);padding:10px 14px;border-bottom:1px solid var(--bdm)">
+        <div style="font-size:13px;font-weight:600;color:var(--gd);margin-bottom:6px">📋 הסכם ממתין לאישורך</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;white-space:pre-line">${escHtml(deal.terms)}</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="approveDeal('${deal.id}')" style="flex:1;padding:9px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit">✓ אני מסכים להסכם</button>
+          <button onclick="declineDeal('${deal.id}')" style="padding:9px 14px;border-radius:var(--r8);background:transparent;color:var(--tx2);border:1px solid var(--bdm);cursor:pointer;font-size:13px;font-family:inherit">דחה</button>
+        </div>
+      </div>`
+    }
+  } else if (deal.status === 'active') {
+    if (myDone) {
+      bar.innerHTML = `<div style="background:var(--gl);padding:10px 14px;border-bottom:1px solid var(--bdm);font-size:13px;color:var(--gd)">✓ סימנת שביצעת — ממתין לאישור הצד השני</div>`
+    } else {
+      bar.innerHTML = `<div style="background:var(--gl);padding:10px 14px;border-bottom:1px solid var(--bdm)">
+        <div style="font-size:12px;font-weight:700;color:var(--gd);margin-bottom:8px">✅ הסכם פעיל</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="markDone('${deal.id}')" style="flex:1;padding:9px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">✅ ביצעתי את חלקי</button>
+          <button onclick="openReportForm('${deal.id}')" style="padding:9px 12px;border-radius:var(--r8);background:transparent;color:#c00;border:1.5px solid #c00;cursor:pointer;font-size:12px;font-family:inherit">⚠️ דווח</button>
+        </div>
+      </div>`
+    }
+  } else if (deal.status === 'completed') {
+    bar.innerHTML = `<div style="background:var(--gl);padding:10px 14px;border-bottom:1px solid var(--bdm);font-size:13px;color:var(--gd);text-align:center;font-weight:600">🎉 העסקה הושלמה בהצלחה!</div>`
+  } else if (deal.status === 'disputed') {
+    bar.innerHTML = `<div style="background:#FFF0F0;padding:10px 14px;border-bottom:1px solid #fcc;font-size:13px;color:#c00;text-align:center">⚠️ דיווח נשלח — צוות switch בוחן</div>`
+  }
+}
+
+function openDealCreate() {
+  if (!activeChatReqId) return
+  if (activeDeal) { toast('כבר קיים הסכם לשיחה זו'); return }
+  openOverlay('deal-overlay')
+}
+
+async function createDeal() {
+  const terms = document.getElementById('deal-terms').value.trim()
+  if (!terms) { toast('כתוב את תנאי ההסכם'); return }
+  if (!activeChatReqId || !activeChatOtherId) return
+  const btn = document.getElementById('deal-create-btn')
+  btn.disabled = true; btn.textContent = 'שולח...'
+  try {
+    const { error } = await withTimeout(
+      sb.from('deals').insert({ request_id: activeChatReqId, creator_id: ME.id, other_id: activeChatOtherId, terms }), 7000)
+    if (error) throw error
+    await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '📋 שלחתי הסכם לאישורך — ראה את הפס הירוק למעלה' })
+    await notify(activeChatOtherId, 'new_deal', ME.name + ' שלח הסכם לאישורך 📋', terms.substring(0,60))
+    closeOverlay('deal-overlay')
+    document.getElementById('deal-terms').value = ''
+    toast('הסכם נשלח! ✓')
+    await renderDealBar(activeChatReqId)
+    await renderMsgs()
+  } catch(e) {
+    toast('שגיאה: ' + e.message)
+  } finally {
+    btn.disabled = false; btn.textContent = 'שלח הסכם לאישור ✓'
+  }
+}
+
+async function approveDeal(dealId) {
+  await withTimeout(sb.from('deals').update({ other_approved: true, status: 'active' }).eq('id', dealId), 6000)
+  await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '✅ אישרתי את ההסכם — נתחיל!' })
+  if (activeChatOtherId) await notify(activeChatOtherId, 'deal_approved', ME.name + ' אישר את ההסכם ✅', 'ההסכם פעיל — בהצלחה!')
+  toast('ההסכם אושר! ✓')
+  await renderDealBar(activeChatReqId)
+  await renderMsgs()
+}
+
+async function declineDeal(dealId) {
+  await withTimeout(sb.from('deals').delete().eq('id', dealId), 6000)
+  activeDeal = null
+  await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '❌ דחיתי את ההסכם — ניתן לשלוח גרסה חדשה' })
+  toast('הסכם נדחה')
+  await renderDealBar(activeChatReqId)
+  await renderMsgs()
+}
+
+async function markDone(dealId) {
+  const iAmCreator = activeDeal?.creator_id === ME.id
+  const field = iAmCreator ? 'creator_done' : 'other_done'
+  const update = { [field]: true }
+  const otherDone = iAmCreator ? activeDeal?.other_done : activeDeal?.creator_done
+  if (otherDone) update.status = 'completed'
+  await withTimeout(sb.from('deals').update(update).eq('id', dealId), 6000)
+  if (otherDone) {
+    await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '🎉 שני הצדדים אישרו סיום — העסקה הושלמה בהצלחה!' })
+    if (activeChatOtherId) await notify(activeChatOtherId, 'deal_done', 'העסקה הושלמה! 🎉', 'שני הצדדים אישרו — כל הכבוד!')
+    toast('🎉 עסקה הושלמה!')
+    openRate(activeChatReqId, activeChatOtherId, document.getElementById('chdr-name').textContent)
+  } else {
+    await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '✅ סימנתי שביצעתי את חלקי — ממתין לאישורך' })
+    if (activeChatOtherId) await notify(activeChatOtherId, 'deal_half_done', ME.name + ' סיים את חלקו ✅', 'סמן גם אתה כדי לסגור את העסקה')
+    toast('✓ סומן — ממתין לצד השני')
+  }
+  await renderDealBar(activeChatReqId)
+  await renderMsgs()
+}
+
+function openReportForm(dealId) {
+  document.getElementById('report-overlay').dataset.dealId = dealId
+  openOverlay('report-overlay')
+}
+
+async function submitReport() {
+  const reason = document.getElementById('report-reason').value.trim()
+  if (!reason) { toast('תאר את הבעיה'); return }
+  const dealId = document.getElementById('report-overlay').dataset.dealId
+  if (!dealId || !activeChatOtherId) return
+  const btn = document.getElementById('report-btn')
+  btn.disabled = true; btn.textContent = 'שולח...'
+  try {
+    await withTimeout(sb.from('deal_reports').insert({ deal_id: dealId, reporter_id: ME.id, reported_id: activeChatOtherId, reason }), 7000)
+    await withTimeout(sb.from('deals').update({ status: 'disputed' }).eq('id', dealId), 6000)
+    // Apply warning/ban to reported user
+    await applyWarning(activeChatOtherId)
+    closeOverlay('report-overlay')
+    document.getElementById('report-reason').value = ''
+    toast('הדיווח נשלח — צוות switch יבדוק')
+    await renderDealBar(activeChatReqId)
+  } catch(e) {
+    toast('שגיאה: ' + e.message)
+  } finally {
+    btn.disabled = false; btn.textContent = 'שלח דיווח'
+  }
+}
+
+async function applyWarning(userId) {
+  const { data: p } = await withTimeout(sb.from('profiles').select('warnings, is_banned').eq('id', userId).single(), 5000)
+  if (!p || p.is_banned) return
+  const newWarnings = (p.warnings || 0) + 1
+  let update = { warnings: newWarnings }
+  if (newWarnings === 1) {
+    update.ban_until = new Date(Date.now() + 24 * 3600000).toISOString()
+    update.ban_reason = 'אזהרה ראשונה — חסימה זמנית של 24 שעות'
+  } else if (newWarnings === 2) {
+    update.ban_until = new Date(Date.now() + 72 * 3600000).toISOString()
+    update.ban_reason = 'אזהרה שנייה — חסימה של 72 שעות, בירור מתבצע'
+  } else {
+    update.is_banned = true
+    update.ban_reason = 'חסימה קבועה לאחר 3 הפרות'
+  }
+  await withTimeout(sb.from('profiles').update(update).eq('id', userId), 5000)
 }
 
 // ── COMMUNITY ──
