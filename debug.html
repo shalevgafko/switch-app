@@ -4,78 +4,150 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>debug</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-body{font-family:monospace;padding:20px;background:#111;color:#0f0;font-size:13px}
-.ok{color:#0f0}.err{color:#f44}.warn{color:#ff0}
-p{margin:4px 0;word-break:break-all}
+body{font-family:monospace;padding:20px;background:#111;color:#0f0;font-size:14px;text-align:right}
+button{display:block;width:100%;margin:10px 0;padding:14px;font-size:16px;font-weight:700;border:none;border-radius:10px;cursor:pointer}
+.red{background:#c00;color:#fff}
+.green{background:#1D9E75;color:#fff}
+p{margin:4px 0;color:#0f0}
+.e{color:#f44}
+.w{color:#fa0}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
-<p class="warn">⏳ מריץ בדיקות...</p>
+<p id="status">מריץ בדיקות...</p>
 <div id="out"></div>
+
 <script>
+const SB_URL = 'https://ubrsnymjvgasneeuqewv.supabase.co'
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs'
+
 const out = document.getElementById('out')
-function log(msg, cls='ok') {
+function log(msg, cls='') {
   const p = document.createElement('p')
-  p.className = cls
+  if (cls) p.className = cls
   p.textContent = msg
   out.appendChild(p)
 }
 
-const SB_URL = 'https://ubrsnymjvgasneeuqewv.supabase.co'
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs'
-
-log('✓ מאתחל Supabase client...')
-const sb = supabase.createClient(SB_URL, SB_KEY)
-log('✓ Client נוצר')
-
-async function run() {
-  // 1. Check session
-  log('--- בדיקת session ---', 'warn')
-  try {
-    const { data, error } = await sb.auth.getSession()
-    if (error) { log('✗ getSession error: ' + JSON.stringify(error), 'err'); }
-    else if (!data?.session) { log('✗ אין session — המשתמש לא מחובר', 'err'); }
-    else {
-      log('✓ session קיים: user_id = ' + data.session.user.id)
-      log('✓ email = ' + data.session.user.email)
-      log('✓ expires_at = ' + new Date(data.session.expires_at * 1000).toISOString())
-    }
-  } catch(e) { log('✗ exception: ' + e.message, 'err') }
-
-  // 2. Query profiles (no auth)
-  log('--- בדיקת profiles (anon) ---', 'warn')
-  try {
-    const { data, error } = await sb.from('profiles').select('id,name').limit(3)
-    if (error) { log('✗ profiles error: ' + JSON.stringify(error), 'err') }
-    else { log('✓ profiles returned: ' + data.length + ' rows'); data.forEach(r => log('  ' + r.name + ' | ' + r.id)) }
-  } catch(e) { log('✗ exception: ' + e.message, 'err') }
-
-  // 3. Query profiles with services
-  log('--- בדיקת profiles + services ---', 'warn')
-  try {
-    const { data, error } = await sb.from('profiles').select('name,services(name)').limit(3)
-    if (error) { log('✗ error: ' + JSON.stringify(error), 'err') }
-    else { data.forEach(r => log('  ' + r.name + ': ' + r.services.length + ' services')) }
-  } catch(e) { log('✗ exception: ' + e.message, 'err') }
-
-  // 4. Query own profile (if logged in)
-  log('--- בדיקת own profile ---', 'warn')
-  try {
-    const { data: sd } = await sb.auth.getSession()
-    if (!sd?.session?.user) { log('✗ לא מחובר — דלג', 'err'); return }
-    const uid = sd.session.user.id
-    const { data, error } = await sb.from('profiles').select('*,services(*)').eq('id', uid).single()
-    if (error) { log('✗ own profile error: ' + JSON.stringify(error), 'err') }
-    else if (!data) { log('✗ אין פרופיל עבור uid ' + uid, 'err') }
-    else { log('✓ פרופיל נמצא: ' + data.name + ' | onboarded: ' + data.onboarded) }
-  } catch(e) { log('✗ exception: ' + e.message, 'err') }
-
-  log('--- סיום ---', 'warn')
+function withTimeout(p, ms=8000, label='') {
+  return Promise.race([
+    p,
+    new Promise((_, rej) => setTimeout(() => rej(new Error('TIMEOUT after '+ms+'ms: '+label)), ms))
+  ])
 }
 
-run()
+async function runTests() {
+  // 1. Check localStorage session
+  log('--- בדיקת localStorage ---')
+  const storageKey = Object.keys(localStorage).find(k => k.includes('supabase') || k.includes('sb-'))
+  const stored = storageKey ? JSON.parse(localStorage.getItem(storageKey) || '{}') : null
+  if (stored?.access_token) {
+    const exp = new Date(stored.expires_at * 1000)
+    const expired = stored.expires_at * 1000 < Date.now()
+    log('session נמצא, תוקף: ' + exp.toLocaleString())
+    log('פג תוקף: ' + (expired ? 'כן ← בעיה!' : 'לא'), expired ? 'e' : '')
+  } else {
+    log('אין session שמור ב-localStorage', 'w')
+  }
+
+  // 2. Init client
+  log('--- אתחול Supabase ---')
+  let sb
+  try {
+    sb = supabase.createClient(SB_URL, SB_KEY)
+    log('Client נוצר ✓')
+  } catch(e) {
+    log('שגיאה ביצירת client: ' + e.message, 'e')
+    return
+  }
+
+  // 3. getSession with timeout
+  log('--- getSession (timeout 5s) ---')
+  try {
+    const { data: sd } = await withTimeout(sb.auth.getSession(), 5000, 'getSession')
+    if (sd?.session?.user) {
+      log('✓ יש session: ' + sd.session.user.email)
+      log('user id: ' + sd.session.user.id)
+    } else {
+      log('✗ אין session — לא מחובר', 'w')
+    }
+  } catch(e) {
+    log('✗ ' + e.message, 'e')
+    log('← getSession תקוע! בעיית רשת או session פגום', 'e')
+  }
+
+  // 4. Anon profiles query
+  log('--- profiles query (anon, timeout 5s) ---')
+  try {
+    const { data, error } = await withTimeout(
+      sb.from('profiles').select('id, name').limit(5),
+      5000, 'anon profiles'
+    )
+    if (error) { log('✗ שגיאה: ' + error.message, 'e') }
+    else { log('✓ profiles: ' + (data||[]).map(p=>p.name).join(', ')) }
+  } catch(e) {
+    log('✗ ' + e.message, 'e')
+  }
+
+  // 5. Profiles + services join
+  log('--- profiles+services join (timeout 5s) ---')
+  try {
+    const { data, error } = await withTimeout(
+      sb.from('profiles').select('name, services(name)').limit(5),
+      5000, 'profiles+services'
+    )
+    if (error) { log('✗ שגיאה: ' + error.message, 'e') }
+    else {
+      (data||[]).forEach(p => log('✓ ' + p.name + ': ' + (p.services||[]).length + ' שירותים'))
+    }
+  } catch(e) {
+    log('✗ ' + e.message, 'e')
+  }
+
+  // 6. Authenticated query (if logged in)
+  log('--- בדיקת session לאחר login ---')
+  try {
+    const { data: sd2 } = await withTimeout(sb.auth.getSession(), 5000, 'getSession2')
+    if (sd2?.session?.user) {
+      const uid = sd2.session.user.id
+      log('--- own profile query (authenticated, timeout 5s) ---')
+      try {
+        const { data: p, error: pe } = await withTimeout(
+          sb.from('profiles').select('*, services(*)').eq('id', uid).single(),
+          5000, 'own profile'
+        )
+        if (pe) { log('✗ שגיאה: ' + pe.message, 'e') }
+        else if (p) { log('✓ פרופיל: ' + p.name + ', שירותים: ' + (p.services||[]).length) }
+        else { log('✗ פרופיל לא נמצא', 'e') }
+      } catch(e) {
+        log('✗ ' + e.message, 'e')
+      }
+    } else {
+      log('לא מחובר — דלג על בדיקת authenticated query', 'w')
+    }
+  } catch(e) {
+    log('getSession2 נכשל: ' + e.message, 'e')
+  }
+
+  document.getElementById('status').textContent = '✓ בדיקות הסתיימו'
+}
+
+runTests()
+</script>
+
+<button class="red" onclick="clearAndReload()">נקה session והתחבר מחדש</button>
+<button class="green" onclick="goApp()">חזור לאפליקציה</button>
+
+<script>
+function clearAndReload() {
+  Object.keys(localStorage).filter(k => k.includes('supabase') || k.includes('sb-')).forEach(k => localStorage.removeItem(k))
+  Object.keys(sessionStorage).filter(k => k.includes('supabase') || k.includes('sb-')).forEach(k => sessionStorage.removeItem(k))
+  alert('Session נוקה. לחץ אישור כדי להיכנס מחדש.')
+  window.location.href = '/switch-app/'
+}
+function goApp() { window.location.href = '/switch-app/' }
 </script>
 </body>
 </html>

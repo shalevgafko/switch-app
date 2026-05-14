@@ -573,6 +573,14 @@ function toast(m) {
   setTimeout(() => t.classList.remove('show'), 2800)
 }
 
+// Race a Supabase query against a timeout so it never hangs forever
+function withTimeout(promise, ms = 8000) {
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('timeout'), {isTimeout: true})), ms))
+  ])
+}
+
 // ── CONFETTI ──
 function runConfetti() {
   const canvas = document.getElementById('confetti-canvas')
@@ -758,18 +766,19 @@ sb.auth.onAuthStateChange(async (event, session) => {
     av.style.background = '#9FE1CB'; av.style.color = '#085041'
 
     try {
-      let { data: profile } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
+      const pr = await withTimeout(sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single(), 7000)
+      let profile = pr.data
       if (!profile) {
         const meta = session.user.user_metadata || {}
         const name = meta.full_name || session.user.email.split('@')[0]
         const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
         const idx = Math.floor(Math.random() * AV_BGS.length)
-        await sb.from('profiles').upsert({
+        await withTimeout(sb.from('profiles').upsert({
           id: session.user.id, name, avatar_initials: initials,
           avatar_bg: AV_BGS[idx], avatar_tc: AV_TCS[idx]
-        })
-        const { data: created } = await sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single()
-        profile = created
+        }), 7000)
+        const cr = await withTimeout(sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single(), 7000)
+        profile = cr.data
       }
       ME = profile
       if (ME?.avatar_url) {
@@ -784,7 +793,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
       }
     } catch(e) {
       console.error('profile load error:', e)
-      toast('שגיאה בטעינת הפרופיל — רענן את הדף')
+      toast(e.isTimeout ? 'חיבור איטי — רענן את הדף' : 'שגיאה בטעינת הפרופיל — רענן את הדף')
     }
     loadFeed()
     subscribeNotifs()
@@ -847,7 +856,7 @@ async function loadFeed() {
     const q = (document.getElementById('si').value || '').trim()
     let query = sb.from('profiles').select('*, services(*)')
     if (ME?.id) query = query.neq('id', ME.id)
-    let { data: users } = await query.order('rating', { ascending: false })
+    let { data: users } = await withTimeout(query.order('rating', { ascending: false }), 8000)
     if (!users) users = []
     let list = users.filter(u => {
       const svcs = u.services || []
