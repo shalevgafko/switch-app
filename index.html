@@ -548,6 +548,30 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
   </div>
 </div>
 
+<!-- MY DEALS OVERLAY -->
+<div id="my-deals-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('my-deals-overlay')">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:88dvh;display:flex;flex-direction:column;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">📋 העסקאות שלי</div>
+      <button onclick="closeOverlay('my-deals-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div id="my-deals-list" style="padding:14px 16px;overflow-y:auto;padding-bottom:32px"></div>
+  </div>
+</div>
+
+<!-- MY REVIEWS OVERLAY -->
+<div id="my-reviews-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('my-reviews-overlay')">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:88dvh;display:flex;flex-direction:column;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">⭐ הביקורות שלי</div>
+      <button onclick="closeOverlay('my-reviews-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div id="my-reviews-list" style="padding:14px 16px;overflow-y:auto;padding-bottom:32px"></div>
+  </div>
+</div>
+
 <!-- CREATE COMMUNITY OVERLAY -->
 <div id="create-comm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('create-comm-overlay')">
   <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:88dvh;overflow-y:auto;padding:0 0 32px;animation:sup .25s cubic-bezier(.32,.72,0,1)">
@@ -1751,7 +1775,12 @@ async function loadProf() {
   profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--tx3)"><div style="font-size:36px;margin-bottom:12px">👤</div><div style="font-size:15px">טוען...</div></div>'
   const userId = ME.id
 
-  const { data: me, error } = await sb.from('profiles').select('*, services(*)').eq('id', userId).single()
+  const [pr, rr] = await Promise.all([
+    withTimeout(sb.from('profiles').select('*, services(*)').eq('id', userId).single(), 8000),
+    withTimeout(sb.from('reviews').select('id', { count: 'exact', head: true }).eq('reviewed_id', userId), 5000)
+  ])
+  const { data: me, error } = pr
+  const reviewsCount = rr.count || 0
   if (!me) {
     const msg = error ? `שגיאה: ${error.message}` : 'פרופיל לא נמצא'
     profpage.innerHTML = `<div style="padding:40px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px"><div style="color:var(--tx3);font-size:13px">${msg}</div><button class="btn-g" onclick="loadProf()" style="width:auto;padding:10px 24px">נסה שוב</button></div>`
@@ -1780,8 +1809,8 @@ async function loadProf() {
       ${me.bio ? `<div style="font-size:13px;color:var(--tx2);margin-top:12px;line-height:1.6;padding-top:12px;border-top:1px solid var(--bd)">${me.bio}</div>` : ''}
       <div class="stat-row">
         <div class="stat-box"><div class="stat-num">${svcs.length}</div><div class="stat-lbl">שירותים</div></div>
-        <div class="stat-box"><div class="stat-num">${me.rating||5}</div><div class="stat-lbl">דירוג</div></div>
-        <div class="stat-box"><div class="stat-num">${me.deals_count||0}</div><div class="stat-lbl">עסקאות</div></div>
+        <div class="stat-box" onclick="openMyReviews()" style="cursor:pointer"><div class="stat-num">${reviewsCount}</div><div class="stat-lbl">ביקורות ›</div></div>
+        <div class="stat-box" onclick="openMyDeals()" style="cursor:pointer"><div class="stat-num">${me.deals_count||0}</div><div class="stat-lbl">עסקאות ›</div></div>
       </div>
     </div>
     <div class="sc">
@@ -1802,6 +1831,74 @@ async function loadProf() {
       <div class="promo boost" onclick="toast('Boost — בקרוב!')"><div class="promo-ico">🚀</div><div><div class="promo-title">Boost להצעה</div><div class="promo-sub">קדם הצעה לראש הפיד</div></div></div>
       <div class="promo b2b" onclick="toast('B2B — בקרוב!')"><div class="promo-ico">🏢</div><div><div class="promo-title">B2B</div><div class="promo-sub">switch לחברות וקהילות</div></div></div>
     </div>`
+}
+
+async function openMyDeals() {
+  openOverlay('my-deals-overlay')
+  const list = document.getElementById('my-deals-list')
+  list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx3)">טוען...</div>'
+  try {
+    const { data: deals } = await withTimeout(
+      sb.from('deals')
+        .select('*, creator:profiles!deals_creator_id_fkey(name), other:profiles!deals_other_id_fkey(name)')
+        .or(`creator_id.eq.${ME.id},other_id.eq.${ME.id}`)
+        .order('created_at', { ascending: false }), 8000)
+    if (!deals?.length) {
+      list.innerHTML = '<div style="text-align:center;padding:36px;color:var(--tx3)">אין עסקאות עדיין</div>'
+      return
+    }
+    const sLabel = { pending_approval: 'ממתין', active: 'פעיל', completed: 'הושלם', disputed: 'בדיון' }
+    const sColor = { pending_approval: '#BA7517', active: 'var(--gd)', completed: 'var(--g)', disputed: '#c00' }
+    list.innerHTML = deals.map(d => {
+      const iAm = d.creator_id === ME.id
+      const who = escHtml((iAm ? d.other?.name : d.creator?.name) || 'משתמש')
+      const myO = escHtml((iAm ? d.my_offer : d.their_offer) || '')
+      const thO = escHtml((iAm ? d.their_offer : d.my_offer) || '')
+      const dl = d.deadline ? new Date(d.deadline).toLocaleDateString('he-IL') : ''
+      const st = d.status || 'pending_approval'
+      const col = sColor[st] || 'var(--tx2)'
+      return `<div style="background:var(--bg);border-radius:var(--r12);padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:14px;font-weight:600">👤 ${who}</div>
+          <span style="font-size:11px;font-weight:600;color:${col};background:${col}1A;border-radius:10px;padding:2px 8px">${sLabel[st] || st}</span>
+        </div>
+        <div style="font-size:12px;color:var(--tx2);line-height:1.75">
+          🤝 אני: <strong>${myO}</strong><br>
+          🤝 הם: <strong>${thO}</strong>
+          ${dl ? `<br>📅 יעד: <strong>${dl}</strong>` : ''}
+        </div>
+      </div>`
+    }).join('')
+  } catch(e) {
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:#c00">שגיאה בטעינה</div>'
+  }
+}
+
+async function openMyReviews() {
+  openOverlay('my-reviews-overlay')
+  const list = document.getElementById('my-reviews-list')
+  list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx3)">טוען...</div>'
+  try {
+    const { data: reviews } = await withTimeout(
+      sb.from('reviews')
+        .select('*, reviewer:profiles!reviews_reviewer_id_fkey(name)')
+        .eq('reviewed_id', ME.id)
+        .order('created_at', { ascending: false }), 8000)
+    if (!reviews?.length) {
+      list.innerHTML = '<div style="text-align:center;padding:36px;color:var(--tx3)">אין ביקורות עדיין</div>'
+      return
+    }
+    list.innerHTML = reviews.map(r => `
+      <div class="rv-item">
+        <div class="rv-head">
+          <div class="rv-name">${escHtml(r.reviewer?.name || 'משתמש')}</div>
+          <div class="rv-stars">${'★'.repeat(r.stars || 5)}</div>
+        </div>
+        ${r.text ? `<div class="rv-text">${escHtml(r.text)}</div>` : ''}
+      </div>`).join('')
+  } catch(e) {
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:#c00">שגיאה בטעינה</div>'
+  }
 }
 
 // ── EDIT PROFILE ──
