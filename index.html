@@ -619,38 +619,45 @@ function obNext1() {
 async function obFinish() {
   const btn = document.getElementById('ob-finish-btn')
   btn.disabled = true; btn.textContent = 'שומר...'
-  const name  = document.getElementById('ob-name').value.trim()
-  const loc   = document.getElementById('ob-loc').value.trim()
-  const bio   = document.getElementById('ob-bio').value.trim()
-  const sname = document.getElementById('ob-sname').value.trim()
-  const sdesc = document.getElementById('ob-sdesc').value.trim()
-  const scat  = document.getElementById('ob-scat').value
+  try {
+    const name  = document.getElementById('ob-name').value.trim()
+    const loc   = document.getElementById('ob-loc').value.trim()
+    const bio   = document.getElementById('ob-bio').value.trim()
+    const sname = document.getElementById('ob-sname').value.trim()
+    const sdesc = document.getElementById('ob-sdesc').value.trim()
+    const scat  = document.getElementById('ob-scat').value
 
-  const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
-  await sb.from('profiles').update({ name, location: loc, bio, avatar_initials: initials, onboarded: true }).eq('id', ME.id)
-  if (sname) {
-    await sb.from('services').insert({ user_id: ME.id, name: sname, description: sdesc, category: scat })
+    const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
+    await sb.from('profiles').update({ name, location: loc, bio, avatar_initials: initials, onboarded: true }).eq('id', ME.id)
+    if (sname) {
+      await sb.from('services').insert({ user_id: ME.id, name: sname, description: sdesc, category: scat })
+    }
+    const { data: updated } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
+    ME = updated
+    document.getElementById('onboard-screen').classList.add('hide')
+    const av = document.getElementById('topbar-av')
+    av.textContent = ME.avatar_initials || name.substring(0,2)
+    showWelcome(ME.name)
+  } catch(e) {
+    toast('שגיאה בשמירה — נסה שוב')
+    btn.disabled = false; btn.textContent = 'בוא נתחיל! 🚀'
   }
-  const { data: updated } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
-  ME = updated
-  document.getElementById('onboard-screen').classList.add('hide')
-  const av = document.getElementById('topbar-av')
-  av.textContent = ME.avatar_initials || name.substring(0,2)
-  sessionStorage.setItem('welcomed', '1')
-  showWelcome(ME.name)
 }
 
 async function obSkip() {
-  const name = document.getElementById('ob-name').value.trim() || ME?.name || ''
-  const loc  = document.getElementById('ob-loc').value.trim()
-  const bio  = document.getElementById('ob-bio').value.trim()
-  const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
-  await sb.from('profiles').update({ name, location: loc, bio, avatar_initials: initials, onboarded: true }).eq('id', ME.id)
-  const { data: updated } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
-  ME = updated
-  document.getElementById('onboard-screen').classList.add('hide')
-  sessionStorage.setItem('welcomed', '1')
-  showWelcome(ME.name)
+  try {
+    const name = document.getElementById('ob-name').value.trim() || ME?.name || ''
+    const loc  = document.getElementById('ob-loc').value.trim()
+    const bio  = document.getElementById('ob-bio').value.trim()
+    const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
+    await sb.from('profiles').update({ name, location: loc, bio, avatar_initials: initials, onboarded: true }).eq('id', ME.id)
+    const { data: updated } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
+    ME = updated
+    document.getElementById('onboard-screen').classList.add('hide')
+    showWelcome(ME.name)
+  } catch(e) {
+    toast('שגיאה בשמירה — נסה שוב')
+  }
 }
 
 // ── WELCOME ──
