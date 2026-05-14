@@ -666,7 +666,7 @@ function closeWelcome() {
   setTimeout(() => {
     ws.classList.add('hide')
     ws.classList.remove('welcome-out')
-    if (!ME?.onboarded) showOnboarding()
+    if (ME && !ME.onboarded) showOnboarding()
   }, 450)
 }
 
@@ -756,13 +756,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
       }
       av.style.background = ME?.avatar_bg || '#9FE1CB'
       av.style.color = ME?.avatar_tc || '#085041'
-      if (!sessionStorage.getItem('welcomed')) {
-        sessionStorage.setItem('welcomed', '1')
+      if (!ME?.onboarded) {
+        // New user: show welcome, closeWelcome() triggers onboarding
         showWelcome(ME?.name || '')
-        // closeWelcome() will call showOnboarding() if !ME.onboarded
-      } else if (!ME?.onboarded) {
-        showOnboarding()
       }
+      // Returning users (onboarded=true) go directly to the app
     } catch(e) {
       console.error('profile load error:', e)
     }
