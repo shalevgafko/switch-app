@@ -1,4 +1,4 @@
-const CACHE = 'switch-v4'
+const CACHE = 'switch-v5'
 const STATIC = [
   '/switch-app/icon-192.png',
   '/switch-app/icon-512.png',
@@ -9,7 +9,11 @@ self.addEventListener('install', e => {
 })
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()))
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  )
 })
 
 self.addEventListener('fetch', e => {
@@ -17,17 +21,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
   if (!url.origin.includes('github.io') && !url.origin.includes('googleapis') && !url.origin.includes('jsdelivr')) return
 
-  // HTML — network first, fallback to cache
+  // HTML — always fetch fresh from network, never cache
   if (url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
-    e.respondWith(
-      fetch(e.request).then(res => {
-        if (res.ok) {
-          const clone = res.clone()
-          caches.open(CACHE).then(c => c.put(e.request, clone))
-        }
-        return res
-      }).catch(() => caches.match(e.request))
-    )
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)))
     return
   }
 

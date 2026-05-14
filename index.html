@@ -1205,14 +1205,18 @@ async function loadProf() {
   // Get user ID from ME if loaded, otherwise directly from auth session
   let userId = ME?.id
   if (!userId) {
-    const { data: { session } } = await sb.auth.getSession()
-    if (!session?.user) return
-    userId = session.user.id
+    const { data: sd } = await sb.auth.getSession()
+    if (!sd?.session?.user) {
+      profpage.innerHTML = '<div style="padding:40px;text-align:center;color:var(--tx3)">לא מחובר</div>'
+      return
+    }
+    userId = sd.session.user.id
   }
 
   const { data: me, error } = await sb.from('profiles').select('*, services(*)').eq('id', userId).single()
   if (!me) {
-    profpage.innerHTML = '<div style="padding:48px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px"><div style="color:var(--tx3)">שגיאה בטעינת הפרופיל</div><button class="btn-g" onclick="loadProf()" style="width:auto;padding:10px 24px">נסה שוב</button></div>'
+    const msg = error ? `שגיאה: ${error.message}` : 'פרופיל לא נמצא'
+    profpage.innerHTML = `<div style="padding:40px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px"><div style="color:var(--tx3);font-size:13px">${msg}</div><button class="btn-g" onclick="loadProf()" style="width:auto;padding:10px 24px">נסה שוב</button></div>`
     return
   }
   ME = me
