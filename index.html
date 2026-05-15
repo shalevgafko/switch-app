@@ -898,6 +898,7 @@ document.getElementById('auth-btn').onclick = async () => {
   const name  = document.getElementById('inp-name').value.trim()
   if (!email || !pass) { toast('Please enter email and password'); return }
   const btn = document.getElementById('auth-btn')
+  if (!rateLimit('auth', 5, 60000)) { toast('Too many attempts — wait a minute'); return }
   btn.disabled = true; btn.textContent = 'Signing in...'
   const authTimeout = setTimeout(() => {
     if (document.getElementById('auth-screen') && !document.getElementById('auth-screen').classList.contains('hide')) {
@@ -1280,6 +1281,7 @@ async function renderMsgs() {
 async function sendMsg() {
   const inp = document.getElementById('msgi')
   const txt = inp.value.trim(); if (!txt || !activeChatReqId) return
+  if (!rateLimit('msg', 12, 10000)) { toast('Slow down a bit 🙏'); return }
   inp.value = ''
   await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: txt })
   if (activeChatOtherId) await notify(activeChatOtherId, 'new_message', 'New message from ' + ME.name, txt.substring(0, 50))
@@ -2006,6 +2008,7 @@ async function uploadAvatar(e) {
 
 async function addServ() {
   if (!ME?.id) { toast('Not signed in — please refresh'); return }
+  if (!rateLimit('serv', 5, 3600000)) { toast('Too many skills added — try again later'); return }
   const nameEl = document.getElementById('s-name')
   const descEl = document.getElementById('s-desc')
   const catEl  = document.getElementById('s-cat')
@@ -2023,6 +2026,17 @@ async function addServ() {
 async function delServ(id) {
   await sb.from('services').delete().eq('id', id)
   toast('Skill removed'); loadProf()
+}
+
+// ── RATE LIMITING ──
+function rateLimit(key, max, windowMs) {
+  const now = Date.now()
+  const stored = JSON.parse(localStorage.getItem('rl_' + key) || '[]')
+  const recent = stored.filter(t => now - t < windowMs)
+  if (recent.length >= max) return false
+  recent.push(now)
+  try { localStorage.setItem('rl_' + key, JSON.stringify(recent)) } catch(e) {}
+  return true
 }
 
 function shareProfile() {
