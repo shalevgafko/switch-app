@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #F7F6F2;
+  }
+
+  .card {
+    width: 1200px;
+    height: 630px;
+    background: linear-gradient(145deg, #085041 0%, #0d6b56 35%, #1D9E75 70%, #25c48f 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Background circles */
+  .circle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .c1 { width: 600px; height: 600px; top: -200px; right: -150px; }
+  .c2 { width: 400px; height: 400px; bottom: -150px; left: -100px; }
+  .c3 { width: 200px; height: 200px; top: 80px; left: 120px; }
+  .c4 { width: 120px; height: 120px; bottom: 60px; right: 180px; background: rgba(255,255,255,0.06); }
+
+  /* Grid dots */
+  .dots {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  /* Logo */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-arrows {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .arr-up {
+    width: 0;
+    height: 0;
+    border-left: 13px solid transparent;
+    border-right: 13px solid transparent;
+    border-bottom: 18px solid rgba(255,255,255,0.9);
+  }
+
+  .arr-dn {
+    width: 0;
+    height: 0;
+    border-left: 13px solid transparent;
+    border-right: 13px solid transparent;
+    border-top: 18px solid rgba(255,255,255,0.9);
+  }
+
+  .logo-text {
+    font-size: 88px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -4px;
+    line-height: 1;
+  }
+
+  .logo-text .sw {
+    color: rgba(255,255,255,0.65);
+  }
+
+  /* Tagline */
+  .tagline {
+    font-size: 32px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.82);
+    letter-spacing: -0.5px;
+  }
+
+  /* Pills */
+  .pills {
+    display: flex;
+    gap: 14px;
+    margin-top: 8px;
+  }
+
+  .pill {
+    background: rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 100px;
+    padding: 10px 22px;
+    font-size: 20px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.88);
+    letter-spacing: -0.2px;
+  }
+
+  /* URL */
+  .url {
+    position: absolute;
+    bottom: 36px;
+    font-size: 18px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="card">
+  <div class="dots"></div>
+  <div class="circle c1"></div>
+  <div class="circle c2"></div>
+  <div class="circle c3"></div>
+  <div class="circle c4"></div>
+
+  <div class="content">
+    <div class="logo">
+      <div class="logo-arrows">
+        <div class="arr-up"></div>
+        <div class="arr-dn"></div>
+      </div>
+      <div class="logo-text"><span class="sw">sw</span>itch</div>
+    </div>
+
+    <div class="tagline">swap skills, not cash</div>
+
+    <div class="pills">
+      <div class="pill">Design</div>
+      <div class="pill">Music</div>
+      <div class="pill">Code</div>
+      <div class="pill">Languages</div>
+      <div class="pill">Food</div>
+    </div>
+  </div>
+
+  <div class="url">switch-app.co</div>
+</div>
+</body>
+</html>
