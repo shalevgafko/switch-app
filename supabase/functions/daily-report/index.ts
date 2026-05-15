@@ -101,7 +101,7 @@ serve(async () => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RESEND_KEY}` },
     body: JSON.stringify({
-      from: 'switch <hello@switch-app.co>',
+      from: 'switch <onboarding@resend.dev>',
       to: REPORT_EMAIL,
       subject: `switch ☀️ ${now.toLocaleDateString('he-IL')} — ${n(newUsers)} הרשמות, ${n(newDeals)} דילים${n(openReports) > 0 ? ` ⚠️ ${n(openReports)} דיווחים` : ''}`,
       html,

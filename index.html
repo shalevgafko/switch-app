@@ -384,6 +384,25 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
   </div>
 </div>
 
+<!-- STORY SCREEN -->
+<div id="story-screen" class="hide">
+  <div class="ob-header">
+    <div class="welcome-logo-arrows"><div class="w-arr-up"></div><div class="w-arr-dn"></div></div>
+    <div class="welcome-logo-txt" style="font-size:22px;margin-top:4px">switch</div>
+  </div>
+  <div class="ob-body" style="direction:rtl;text-align:right;padding-bottom:100px">
+    <div class="ob-title" style="font-size:20px;margin-bottom:20px">הסיפור שלנו</div>
+    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 14px">יש לך משהו שאתה יודע לעשות טוב.</p>
+    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 14px">ויש מישהו — בשכונה שלך, בעיר שלך — שצריך בדיוק את זה.</p>
+    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 14px">הבעיה היא שכדי להחליף ערך, תמיד היה צריך כסף באמצע. ולפעמים הכסף פשוט לא שם.</p>
+    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 14px">switch נוצר מהרגשה שמשהו שבור בדרך שבה אנשים עוזרים אחד לשני. שתי שעות עריכה שוות שיעור גיטרה. עצה משפטית שווה עיצוב לוגו. הכישרון שלך שווה משהו — גם כשאין לך מה לשלם.</p>
+    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 0">תציע מה שאתה יודע, תמצא מה שאתה צריך, תסגור עסקה. בלי כסף. בלי ביורוקרטיה.</p>
+  </div>
+  <div style="position:fixed;bottom:0;left:0;right:0;padding:16px 20px 32px;background:var(--sur);border-top:1px solid rgba(0,0,0,0.06)">
+    <button class="ob-next" onclick="closeStory()" style="width:100%">מוכן, בוא נתחיל →</button>
+  </div>
+</div>
+
 <!-- WELCOME SCREEN -->
 <div id="welcome-screen" class="hide">
   <canvas id="confetti-canvas"></canvas>
@@ -778,7 +797,9 @@ function showOnboarding() {
 
 function obNext1() {
   const name = document.getElementById('ob-name').value.trim()
-  if (!name) { toast('Enter your name'); return }
+  const loc  = document.getElementById('ob-loc').value.trim()
+  if (!name) { toast('Please enter your name'); return }
+  if (!loc)  { toast('Please enter your location'); return }
   document.getElementById('ob-step1').classList.add('hide')
   document.getElementById('ob-step2').classList.remove('hide')
   document.getElementById('ob-d1').classList.remove('on')
@@ -806,7 +827,6 @@ async function obFinish() {
     document.getElementById('onboard-screen').classList.add('hide')
     const av = document.getElementById('topbar-av')
     av.textContent = ME.avatar_initials || name.substring(0,2)
-    showWelcome(ME.name)
   } catch(e) {
     toast('Save error — please try again')
     btn.disabled = false; btn.textContent = "Let's go! 🚀"
@@ -823,7 +843,6 @@ async function obSkip() {
     const { data: updated } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
     ME = updated
     document.getElementById('onboard-screen').classList.add('hide')
-    showWelcome(ME.name)
   } catch(e) {
     toast('Save error — please try again')
   }
@@ -842,8 +861,15 @@ function closeWelcome() {
   setTimeout(() => {
     ws.classList.add('hide')
     ws.classList.remove('welcome-out')
-    if (ME && !ME.onboarded) showOnboarding()
+    if (ME && !ME.onboarded) showStory()
   }, 450)
+}
+function showStory() {
+  document.getElementById('story-screen').classList.remove('hide')
+}
+function closeStory() {
+  document.getElementById('story-screen').classList.add('hide')
+  showOnboarding()
 }
 
 // ── AUTH ──
