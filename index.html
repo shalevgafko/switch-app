@@ -6,6 +6,10 @@
 <title>switch — swap skills, not cash</title>
 <meta name="description" content="swap skills, not cash — trade what you know for what you need"/>
 <meta name="theme-color" content="#1D9E75"/>
+<script>
+!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="init capture alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys getNextSurveyStep onSessionId setPersonPropertiesForFlags".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||(window.posthog=[]));
+posthog.init('phc_oCDHm78MTAix6QkH5wfd2iDeLYHAGu8ZNbsM7vYQrpfR',{api_host:'https://us.i.posthog.com',person_profiles:'identified_only'})
+</script>
 <!-- OG / Social sharing -->
 <meta property="og:type"        content="website"/>
 <meta property="og:url"         content="https://shalevgafko.github.io/switch-app/"/>
@@ -839,6 +843,7 @@ async function obFinish() {
     const { data: updated } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
     ME = updated
     document.getElementById('onboard-screen').classList.add('hide')
+    posthog.capture('onboarding_complete', { has_service: !!sname })
     const av = document.getElementById('topbar-av')
     av.textContent = ME.avatar_initials || name.substring(0,2)
   } catch(e) {
@@ -903,6 +908,7 @@ document.getElementById('auth-btn').onclick = async () => {
   try {
     if (isSignUp) {
       const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name || email.split('@')[0] } } })
+      if (!error) posthog.capture('signup', { email })
       clearTimeout(authTimeout)
       if (error) {
         toast('Error: ' + error.message)
@@ -992,6 +998,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
       }
       av.style.background = ME?.avatar_bg || '#9FE1CB'
       av.style.color = ME?.avatar_tc || '#085041'
+      posthog.identify(ME.id, { name: ME.name, email: session.user.email })
       if (ME && !ME.onboarded) {
         showWelcome(ME.name || '')
         authCover.classList.add('hide')
@@ -1235,6 +1242,7 @@ async function submitRate() {
 
 // ── CHAT ──
 async function openChatByUserId(userId) {
+  posthog.capture('chat_opened', { other_user: userId })
   // Switch to chat tab WITHOUT triggering loadChatList (which would hide cwin)
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'))
   document.querySelectorAll('.nbt').forEach(b => b.classList.remove('on'))
@@ -1485,6 +1493,7 @@ async function createDeal() {
   try {
     const { error } = await withTimeout(
       sb.from('deals').insert({ request_id: activeChatReqId, creator_id: ME.id, other_id: activeChatOtherId, terms, my_offer: myOffer, their_offer: theirOffer, deadline, last_editor_id: ME.id }), 7000)
+    posthog.capture('deal_created')
     if (error) throw error
     await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: `📋 I sent an agreement for your approval — deadline: ${dl}` })
     await notify(activeChatOtherId, 'new_deal', ME.name + ' sent you an agreement 📋', `${myOffer} ↔ ${theirOffer} | due: ${dl}`)
@@ -1526,6 +1535,7 @@ async function markDone(dealId) {
   const otherDone = iAmCreator ? activeDeal?.other_done : activeDeal?.creator_done
   if (otherDone) update.status = 'completed'
   await withTimeout(sb.from('deals').update(update).eq('id', dealId), 6000)
+  if (otherDone) posthog.capture('deal_completed', { deal_id: dealId })
   if (otherDone) {
     await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '🎉 Both sides confirmed — deal completed successfully!' })
     if (activeChatOtherId) await notify(activeChatOtherId, 'deal_done', 'Deal completed! 🎉', 'Both sides confirmed — well done!')
