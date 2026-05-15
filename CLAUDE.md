@@ -141,6 +141,12 @@ Brand voice: friendly, direct, modern, no corporate language.
 Tagline: "swap skills, not cash". Secondary: "trade what you know for what you need".
 Writes in Hebrew for Israeli audience, English for UI copy and international content.
 
+### Writer Agent
+**Full context**: `agents/writer-agent.md` — read it fully before producing any text.
+**Does**: Chatbot responses, social media posts, push notification copy, onboarding text, marketing emails, App Store description. Hebrew / Arabic / English.
+**Core rule**: Text must read like a real person wrote it. Never robotic, never generic.
+**Doesn't**: Write code or touch the DB.
+
 ### Support Agent
 Reviews open `reports` table entries. Drafts responses. Recommends warn/ban based on severity.
 **Never executes a ban without explicit owner confirmation.**
