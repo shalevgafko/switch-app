@@ -288,8 +288,18 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 .welcome-out{animation:welcomeOut .45s cubic-bezier(.4,0,1,1) forwards}
 @keyframes welcomeOut{to{opacity:0;transform:scale(1.06)}}
 
+/* ── STORY SCREEN ── */
+#story-screen{position:fixed;inset:0;background:var(--bg);z-index:600;display:flex;flex-direction:column;overflow-y:auto;animation:fadeIn .25s ease}
+#story-screen.hide{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.story-pg{padding:28px 24px 120px;direction:rtl}
+.story-hl{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;color:var(--tx);letter-spacing:-0.5px;margin:0 0 28px;line-height:1.2}
+.story-p{font-size:15px;color:var(--tx2);line-height:1.9;margin:0 0 18px}
+.story-p:last-child{margin:0}
+.story-footer{position:fixed;bottom:0;left:0;right:0;padding:16px 20px 32px;background:var(--bg);border-top:1px solid rgba(0,0,0,0.06)}
+
 /* ── ONBOARDING ── */
-#onboard-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;overflow-y:auto}
+#onboard-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;overflow-y:auto;animation:fadeIn .25s ease}
 #onboard-screen.hide{display:none}
 .ob-header{background:linear-gradient(135deg,#1D9E75,#085041);padding:28px 20px 20px;color:#fff;text-align:center}
 .ob-logo{font-family:'Inter',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
@@ -387,18 +397,20 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 <!-- STORY SCREEN -->
 <div id="story-screen" class="hide">
   <div class="ob-header">
-    <div class="welcome-logo-arrows"><div class="w-arr-up"></div><div class="w-arr-dn"></div></div>
-    <div class="welcome-logo-txt" style="font-size:22px;margin-top:4px">switch</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+      <div class="welcome-logo-arrows"><div class="w-arr-up"></div><div class="w-arr-dn"></div></div>
+      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;letter-spacing:-1px">switch</div>
+    </div>
   </div>
-  <div class="ob-body" style="direction:rtl;text-align:right;padding-bottom:100px">
-    <div class="ob-title" style="font-size:20px;margin-bottom:20px">הסיפור שלנו</div>
-    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 14px">יש לך משהו שאתה יודע לעשות טוב.</p>
-    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 14px">ויש מישהו — בשכונה שלך, בעיר שלך — שצריך בדיוק את זה.</p>
-    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 14px">הבעיה היא שכדי להחליף ערך, תמיד היה צריך כסף באמצע. ולפעמים הכסף פשוט לא שם.</p>
-    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 14px">switch נוצר מהרגשה שמשהו שבור בדרך שבה אנשים עוזרים אחד לשני. שתי שעות עריכה שוות שיעור גיטרה. עצה משפטית שווה עיצוב לוגו. הכישרון שלך שווה משהו — גם כשאין לך מה לשלם.</p>
-    <p style="font-size:15px;color:var(--tx2);line-height:1.8;margin:0 0 0">תציע מה שאתה יודע, תמצא מה שאתה צריך, תסגור עסקה. בלי כסף. בלי ביורוקרטיה.</p>
+  <div class="story-pg">
+    <div class="story-hl">הסיפור שלנו</div>
+    <p class="story-p">יש לך משהו שאתה יודע לעשות טוב. אולי ממש טוב.</p>
+    <p class="story-p">ויש מישהו — בשכונה שלך, בעיר שלך — שצריך בדיוק את זה.</p>
+    <p class="story-p">הבעיה היא שכדי להחליף ערך, תמיד היה צריך כסף באמצע. ולפעמים הכסף פשוט לא שם — לא כי אין רצון, אלא כי הדרך הישנה לא תמיד הגיונית.</p>
+    <p class="story-p">switch נוצר מהרגשה שמשהו חסר בדרך שבה אנשים עוזרים אחד לשני. שתי שעות עריכה שוות שיעור גיטרה. עצה משפטית שווה עיצוב לוגו. הכישרון שלך שווה משהו — גם כשאין לך מה לשלם.</p>
+    <p class="story-p">תציע מה שאתה יודע, תמצא מה שאתה צריך, תסגור עסקה. בלי כסף. בלי ביורוקרטיה.</p>
   </div>
-  <div style="position:fixed;bottom:0;left:0;right:0;padding:16px 20px 32px;background:var(--sur);border-top:1px solid rgba(0,0,0,0.06)">
+  <div class="story-footer">
     <button class="ob-next" onclick="closeStory()" style="width:100%">מוכן, בוא נתחיל →</button>
   </div>
 </div>
@@ -858,10 +870,10 @@ function showWelcome(name) {
 function closeWelcome() {
   const ws = document.getElementById('welcome-screen')
   ws.classList.add('welcome-out')
+  if (ME && !ME.onboarded) showStory()
   setTimeout(() => {
     ws.classList.add('hide')
     ws.classList.remove('welcome-out')
-    if (ME && !ME.onboarded) showStory()
   }, 450)
 }
 function showStory() {
