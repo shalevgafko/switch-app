@@ -999,6 +999,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
       av.style.background = ME?.avatar_bg || '#9FE1CB'
       av.style.color = ME?.avatar_tc || '#085041'
       posthog.identify(ME.id, { name: ME.name, email: session.user.email })
+      checkDeepLink()
       if (ME && !ME.onboarded) {
         showWelcome(ME.name || '')
         authCover.classList.add('hide')
@@ -1874,6 +1875,7 @@ async function loadProf() {
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
           <button onclick="openEditProfile()" style="background:var(--bg);border:1px solid var(--bdm);border-radius:var(--r8);padding:6px 12px;font-size:12px;color:var(--tx2);cursor:pointer;font-family:inherit;transition:background .15s">✏️ Edit</button>
+          <button onclick="shareProfile()" style="background:var(--gl);border:1px solid var(--g);border-radius:var(--r8);padding:6px 12px;font-size:12px;color:var(--gd);cursor:pointer;font-family:inherit;font-weight:600">🔗 Share</button>
           <button onclick="doSignOut()" style="background:transparent;border:1px solid var(--bdm);border-radius:var(--r8);padding:6px 12px;font-size:12px;color:var(--tx3);cursor:pointer;font-family:inherit">Sign out</button>
         </div>
       </div>
@@ -2021,6 +2023,21 @@ async function addServ() {
 async function delServ(id) {
   await sb.from('services').delete().eq('id', id)
   toast('Skill removed'); loadProf()
+}
+
+function shareProfile() {
+  const url = `${location.origin}${location.pathname}?u=${ME.id}`
+  navigator.clipboard.writeText(url).then(() => toast('Link copied! 🔗'))
+  posthog.capture('profile_shared')
+}
+
+function checkDeepLink() {
+  const params = new URLSearchParams(location.search)
+  const uid = params.get('u')
+  if (uid && uid !== ME?.id) {
+    history.replaceState({}, '', location.pathname)
+    openProf(uid)
+  }
 }
 
 async function doSignOut() {
