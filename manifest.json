@@ -1,15 +1,15 @@
 {
   "name": "switch — swap skills, not cash",
   "short_name": "switch",
-  "description": "החלף שירותים בלי כסף",
+  "description": "swap skills, not cash — trade what you know for what you need",
   "start_url": "/switch-app/",
   "scope": "/switch-app/",
   "display": "standalone",
   "background_color": "#F7F6F2",
   "theme_color": "#1D9E75",
   "orientation": "portrait-primary",
-  "lang": "he",
-  "dir": "rtl",
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
