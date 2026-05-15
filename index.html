@@ -289,14 +289,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 @keyframes welcomeOut{to{opacity:0;transform:scale(1.06)}}
 
 /* ── STORY SCREEN ── */
-#story-screen{position:fixed;inset:0;background:var(--bg);z-index:600;display:flex;flex-direction:column;overflow-y:auto;animation:fadeIn .25s ease}
+#story-screen{position:fixed;inset:0;background:linear-gradient(160deg,#1D9E75 0%,#0d7a5a 60%,#085041 100%);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;overflow-y:auto}
 #story-screen.hide{display:none}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.story-pg{padding:28px 24px 120px;direction:rtl}
-.story-hl{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;color:var(--tx);letter-spacing:-0.5px;margin:0 0 28px;line-height:1.2}
-.story-p{font-size:15px;color:var(--tx2);line-height:1.9;margin:0 0 18px}
-.story-p:last-child{margin:0}
-.story-footer{position:fixed;bottom:0;left:0;right:0;padding:16px 20px 32px;background:var(--bg);border-top:1px solid rgba(0,0,0,0.06)}
+.story-card{background:rgba(255,255,255,0.15);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:24px 24px 20px;width:100%;max-width:340px;direction:rtl;text-align:right;animation:fadeUp .6s .4s both;margin-bottom:24px}
+.story-card-title{font-family:'Inter',sans-serif;font-size:17px;font-weight:800;color:#fff;margin-bottom:14px;letter-spacing:-.3px}
+.story-card-p{font-size:13px;color:rgba(255,255,255,0.88);line-height:1.8;margin:0 0 10px}
+.story-card-p:last-child{margin:0}
+/* ── AUTH COVER (prevents flash on login) ── */
+#auth-cover{position:fixed;inset:0;background:var(--bg);z-index:450;transition:opacity .3s ease;pointer-events:none}
+#auth-cover.fade{opacity:0}
+#auth-cover.hide{display:none}
 
 /* ── ONBOARDING ── */
 #onboard-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;overflow-y:auto;animation:fadeIn .25s ease}
@@ -396,22 +398,20 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 
 <!-- STORY SCREEN -->
 <div id="story-screen" class="hide">
-  <div class="ob-header">
-    <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+  <div class="welcome-content" style="gap:20px">
+    <div class="welcome-logo" style="margin-bottom:0">
       <div class="welcome-logo-arrows"><div class="w-arr-up"></div><div class="w-arr-dn"></div></div>
-      <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:800;letter-spacing:-1px">switch</div>
+      <div class="welcome-logo-txt">switch</div>
     </div>
-  </div>
-  <div class="story-pg">
-    <div class="story-hl">הסיפור שלנו</div>
-    <p class="story-p">יש לך משהו שאתה יודע לעשות טוב. אולי ממש טוב.</p>
-    <p class="story-p">ויש מישהו — בשכונה שלך, בעיר שלך — שצריך בדיוק את זה.</p>
-    <p class="story-p">הבעיה היא שכדי להחליף ערך, תמיד היה צריך כסף באמצע. ולפעמים הכסף פשוט לא שם — לא כי אין רצון, אלא כי הדרך הישנה לא תמיד הגיונית.</p>
-    <p class="story-p">switch נוצר מהרגשה שמשהו חסר בדרך שבה אנשים עוזרים אחד לשני. שתי שעות עריכה שוות שיעור גיטרה. עצה משפטית שווה עיצוב לוגו. הכישרון שלך שווה משהו — גם כשאין לך מה לשלם.</p>
-    <p class="story-p">תציע מה שאתה יודע, תמצא מה שאתה צריך, תסגור עסקה. בלי כסף. בלי ביורוקרטיה.</p>
-  </div>
-  <div class="story-footer">
-    <button class="ob-next" onclick="closeStory()" style="width:100%">מוכן, בוא נתחיל →</button>
+    <div class="story-card">
+      <div class="story-card-title">הסיפור שלנו</div>
+      <p class="story-card-p">יש לך משהו שאתה יודע לעשות טוב. אולי ממש טוב.</p>
+      <p class="story-card-p">ויש מישהו — בשכונה שלך, בעיר שלך — שצריך בדיוק את זה.</p>
+      <p class="story-card-p">הבעיה היא שכסף תמיד היה באמצע. ולפעמים הוא פשוט לא שם — לא כי אין רצון, אלא כי הדרך הישנה לא תמיד הגיונית.</p>
+      <p class="story-card-p">switch נוצר מהרגשה שמשהו חסר בדרך שבה אנשים עוזרים אחד לשני. שתי שעות עריכה שוות שיעור גיטרה. עצה משפטית שווה עיצוב לוגו. הכישרון שלך שווה משהו — גם כשאין לך מה לשלם.</p>
+      <p class="story-card-p">תציע מה שאתה יודע, תמצא מה שאתה צריך, תסגור עסקה. בלי כסף. בלי ביורוקרטיה.</p>
+    </div>
+    <button class="welcome-btn" onclick="closeStory()">מוכן, בוא נתחיל →</button>
   </div>
 </div>
 
@@ -437,6 +437,8 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
     <button class="welcome-btn" onclick="closeWelcome()">Let's go! →</button>
   </div>
 </div>
+
+<div id="auth-cover" class="hide"></div>
 
 <!-- AUTH -->
 <div id="auth-screen">
@@ -942,9 +944,11 @@ const AV_TCS = ['#085041','#3C3489','#633806','#991B1B','#1E40AF','#065F46']
 sb.auth.onAuthStateChange(async (event, session) => {
   authReady = true
   if (session?.user) {
-    // Show app immediately — don't wait for profile fetch
+    // Show app + cover immediately — cover prevents flash while profile loads
     document.getElementById('auth-screen').classList.add('hide')
     document.getElementById('app-screen').classList.remove('hide')
+    const authCover = document.getElementById('auth-cover')
+    authCover.classList.remove('hide')
     const av = document.getElementById('topbar-av')
     av.textContent = session.user.email.substring(0,2).toUpperCase()
     av.style.background = '#9FE1CB'; av.style.color = '#085041'
@@ -990,6 +994,10 @@ sb.auth.onAuthStateChange(async (event, session) => {
       av.style.color = ME?.avatar_tc || '#085041'
       if (ME && !ME.onboarded) {
         showWelcome(ME.name || '')
+        authCover.classList.add('hide')
+      } else {
+        authCover.classList.add('fade')
+        setTimeout(() => authCover.classList.add('hide'), 300)
       }
     } catch(e) {
       console.error('profile load error:', e)
