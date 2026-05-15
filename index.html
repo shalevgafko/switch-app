@@ -21,7 +21,10 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 
 /* ── AUTH ── */
 #auth-screen{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
-.auth-logo{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.auth-logo{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.arr-up{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:8px solid var(--g)}
+.arr-dn{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--g)}
+.logo-arrows{display:flex;flex-direction:column;gap:3px}
 .logo-txt{font-family:'Inter',sans-serif;font-size:30px;font-weight:800;letter-spacing:-1px;color:var(--tx)}
 .logo-txt .sw{color:var(--g)}
 .auth-tag{font-size:15px;color:var(--tx2);margin-bottom:32px}
@@ -248,6 +251,9 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 .welcome-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;width:100%}
 .welcome-logo{display:flex;align-items:center;gap:8px;margin-bottom:16px;animation:popIn .7s cubic-bezier(.175,.885,.32,1.275) both}
 @keyframes popIn{from{opacity:0;transform:scale(.3) rotate(-10deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+.welcome-logo-arrows{display:flex;flex-direction:column;gap:4px}
+.w-arr-up{width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:11px solid rgba(255,255,255,0.9)}
+.w-arr-dn{width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:11px solid rgba(255,255,255,0.9)}
 .welcome-logo-txt{font-family:'Inter',sans-serif;font-size:42px;font-weight:800;letter-spacing:-2px;color:#fff;line-height:1}
 .welcome-tagline{font-size:16px;color:rgba(255,255,255,0.85);margin-bottom:32px;animation:fadeUp .6s .25s both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
@@ -272,7 +278,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 #onboard-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;overflow-y:auto}
 #onboard-screen.hide{display:none}
 .ob-header{background:linear-gradient(135deg,#1D9E75,#085041);padding:28px 20px 20px;color:#fff;text-align:center}
-.ob-logo{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px}
+.ob-logo{font-family:'Inter',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
 .ob-logo-txt{font-family:'Inter',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;color:#fff}
 .ob-step-ind{display:flex;gap:6px;justify-content:center;margin-top:12px}
 .ob-dot{width:28px;height:4px;border-radius:2px;background:rgba(255,255,255,.35);transition:background .3s}
@@ -328,7 +334,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 <!-- ONBOARDING SCREEN -->
 <div id="onboard-screen" class="hide">
   <div class="ob-header">
-    <div class="ob-logo"><svg width="28" height="28" viewBox="0 0 40 40" fill="none"><path d="M6.84 15.21A14 14 0 0 1 33.16 15.21" stroke="rgba(255,255,255,0.9)" stroke-width="3.5" stroke-linecap="butt"/><circle cx="33.16" cy="15.21" r="2" fill="rgba(255,255,255,0.9)"/><polygon points="6.84,15.21 12.18,10.77 5.60,8.37" fill="rgba(255,255,255,0.9)"/><path d="M33.16 24.79A14 14 0 0 1 6.84 24.79" stroke="rgba(255,255,255,0.9)" stroke-width="3.5" stroke-linecap="butt"/><circle cx="6.84" cy="24.79" r="2" fill="rgba(255,255,255,0.9)"/><polygon points="33.16,24.79 34.40,31.63 27.82,29.23" fill="rgba(255,255,255,0.9)"/></svg><span class="ob-logo-txt">switch</span></div>
+    <div class="ob-logo">switch ⇄</div>
     <div style="font-size:13px;opacity:.85">Let's set up your profile</div>
     <div class="ob-step-ind">
       <div class="ob-dot on" id="ob-d1"></div>
@@ -369,7 +375,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
   <canvas id="confetti-canvas"></canvas>
   <div class="welcome-content">
     <div class="welcome-logo">
-      <svg width="48" height="48" viewBox="0 0 40 40" fill="none"><path d="M6.84 15.21A14 14 0 0 1 33.16 15.21" stroke="rgba(255,255,255,0.9)" stroke-width="3.5" stroke-linecap="butt"/><circle cx="33.16" cy="15.21" r="2" fill="rgba(255,255,255,0.9)"/><polygon points="6.84,15.21 12.18,10.77 5.60,8.37" fill="rgba(255,255,255,0.9)"/><path d="M33.16 24.79A14 14 0 0 1 6.84 24.79" stroke="rgba(255,255,255,0.9)" stroke-width="3.5" stroke-linecap="butt"/><circle cx="6.84" cy="24.79" r="2" fill="rgba(255,255,255,0.9)"/><polygon points="33.16,24.79 34.40,31.63 27.82,29.23" fill="rgba(255,255,255,0.9)"/></svg>
+      <div class="welcome-logo-arrows"><div class="w-arr-up"></div><div class="w-arr-dn"></div></div>
       <div class="welcome-logo-txt">switch</div>
     </div>
     <div class="welcome-tagline">swap skills, not cash</div>
@@ -390,7 +396,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-logo">
-    <svg width="36" height="36" viewBox="0 0 40 40" fill="none"><path d="M6.84 15.21A14 14 0 0 1 33.16 15.21" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="butt"/><circle cx="33.16" cy="15.21" r="2" fill="#1D9E75"/><polygon points="6.84,15.21 12.18,10.77 5.60,8.37" fill="#1D9E75"/><path d="M33.16 24.79A14 14 0 0 1 6.84 24.79" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="butt"/><circle cx="6.84" cy="24.79" r="2" fill="#1D9E75"/><polygon points="33.16,24.79 34.40,31.63 27.82,29.23" fill="#1D9E75"/></svg>
+    <div class="logo-arrows"><div class="arr-up"></div><div class="arr-dn"></div></div>
     <div class="logo-txt"><span class="sw">sw</span>itch</div>
   </div>
   <div class="auth-tag">swap skills, not cash</div>
@@ -410,7 +416,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 <div id="app-screen" class="hide">
   <div class="topbar">
     <div class="logo">
-      <svg width="28" height="28" viewBox="0 0 40 40" fill="none"><path d="M6.84 15.21A14 14 0 0 1 33.16 15.21" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="butt"/><circle cx="33.16" cy="15.21" r="2" fill="#1D9E75"/><polygon points="6.84,15.21 12.18,10.77 5.60,8.37" fill="#1D9E75"/><path d="M33.16 24.79A14 14 0 0 1 6.84 24.79" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="butt"/><circle cx="6.84" cy="24.79" r="2" fill="#1D9E75"/><polygon points="33.16,24.79 34.40,31.63 27.82,29.23" fill="#1D9E75"/></svg>
+      <div class="logo-arrows"><div class="arr-up"></div><div class="arr-dn"></div></div>
       <div class="logo-txt" style="font-size:21px"><span class="sw">sw</span>itch</div>
     </div>
     <div style="display:flex;align-items:center;gap:4px">
