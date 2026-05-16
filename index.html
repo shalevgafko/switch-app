@@ -1166,7 +1166,18 @@ async function loadFeed() {
       const matchQ = !q || u.name.toLowerCase().includes(q.toLowerCase()) || svcs.some(s => s.name.includes(q))
       return matchCat && matchQ && svcs.length > 0
     })
-    if (!list.length) { feedEl.innerHTML = '<div class="empty">No skills found</div>'; return }
+    if (!list.length) {
+      const isFiltered = (document.getElementById('si').value||'').trim() || activeCat !== 'All'
+      feedEl.innerHTML = isFiltered
+        ? `<div class="empty">No skills found for this search</div>`
+        : `<div style="padding:40px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px">
+            <div style="font-size:48px">🌱</div>
+            <div style="font-size:17px;font-weight:700;color:var(--tx);font-family:'Inter',sans-serif">Be the first here</div>
+            <div style="font-size:14px;color:var(--tx2);line-height:1.6;max-width:260px">switch is just getting started. Add your first skill and be one of the founding members.</div>
+            <button class="btn-g" onclick="goTab('prof')" style="width:auto;padding:12px 28px">Add my first skill →</button>
+           </div>`
+      return
+    }
     feedEl.innerHTML = list.map(u => {
       const svcs = u.services || []
       const first = svcs[0]; if (!first) return ''
