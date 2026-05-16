@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
 <title>switch — swap skills, not cash</title>
 <meta name="description" content="swap skills, not cash — trade what you know for what you need"/>
 <meta name="theme-color" content="#1D9E75"/>
@@ -1045,6 +1045,10 @@ sb.auth.onAuthStateChange(async (event, session) => {
     av.textContent = session.user.email.substring(0,2).toUpperCase()
     av.style.background = '#9FE1CB'; av.style.color = '#085041'
 
+    // Show cached profile instantly if available
+    const cacheKey = 'sw_me_' + session.user.id
+    try { const cached = localStorage.getItem(cacheKey); if (cached) { ME = JSON.parse(cached); const cav = document.getElementById('topbar-av'); if (ME.avatar_url) cav.innerHTML = `<img src="${ME.avatar_url}" style="width:100%;height:100%;object-fit:cover">`; else cav.textContent = ME.avatar_initials || session.user.email.substring(0,2).toUpperCase(); cav.style.background = ME.avatar_bg||'#9FE1CB'; cav.style.color = ME.avatar_tc||'#085041'; authCover.classList.add('fade'); setTimeout(() => authCover.classList.add('hide'), 300) } } catch(e) {}
+
     try {
       const pr = await withTimeout(sb.from('profiles').select('*, services(*)').eq('id', session.user.id).single(), 7000)
       let profile = pr.data
@@ -1077,6 +1081,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
         profile = cr.data
       }
       ME = profile
+      try { localStorage.setItem(cacheKey, JSON.stringify(ME)) } catch(e) {}
       if (ME?.avatar_url) {
         av.innerHTML = `<img src="${ME.avatar_url}" style="width:100%;height:100%;object-fit:cover">`
       } else {
@@ -1104,6 +1109,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     loadComm()
     loadReqs()
   } else {
+    try { Object.keys(localStorage).filter(k=>k.startsWith('sw_me_')).forEach(k=>localStorage.removeItem(k)) } catch(e) {}
     ME = null
     document.getElementById('auth-screen').classList.remove('hide')
     document.getElementById('app-screen').classList.add('hide')
