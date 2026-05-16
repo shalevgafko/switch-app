@@ -112,6 +112,8 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 .card-foot{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .cpill{background:var(--gl);color:var(--gd);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:500}
 .cstar{font-size:11px;color:var(--am);font-weight:500}
+.sel-btn{padding:5px 11px;border-radius:var(--r20);border:1.5px solid var(--bdm);background:transparent;color:var(--tx2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.sel-btn.on{border-color:var(--g);background:var(--gl);color:var(--gd)}
 
 /* ── PROFILE SHEET ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;justify-content:center}
@@ -584,6 +586,29 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
     <button class="nbt on" id="nbt-feed" onclick="goTab('feed')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Discover</button>
     <button class="nbt" id="nbt-chat" onclick="goTab('chat')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat</button>
     <button class="nbt" id="nbt-prof" onclick="goTab('prof')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+  </div>
+</div>
+
+<!-- SERVICE DETAIL OVERLAY -->
+<div class="overlay" id="svc-detail-overlay" onclick="if(event.target===this)closeSvcDetail()">
+  <div class="psheet" style="max-height:88dvh">
+    <div class="handle"></div>
+    <div id="svc-detail-gallery" style="display:flex;gap:10px;overflow-x:auto;padding:14px 16px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+    <div style="padding:14px 16px 32px">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
+        <div id="svc-detail-emoji" style="font-size:26px;flex-shrink:0;margin-top:3px"></div>
+        <div>
+          <div id="svc-detail-name" style="font-size:18px;font-weight:700;color:var(--tx);font-family:'Inter',sans-serif;line-height:1.2"></div>
+          <div id="svc-detail-cat" class="cpill" style="display:inline-block;margin-top:5px"></div>
+        </div>
+      </div>
+      <div id="svc-detail-desc" style="font-size:14px;color:var(--tx2);line-height:1.65;margin-bottom:10px"></div>
+      <div id="svc-detail-fulldesc-wrap" class="hide" style="background:var(--bg);border-radius:var(--r12);padding:13px 14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">About this skill</div>
+        <div id="svc-detail-fulldesc" style="font-size:14px;color:var(--tx2);line-height:1.8;white-space:pre-wrap"></div>
+      </div>
+      <button class="btn-sec" onclick="closeSvcDetail()" style="width:100%;margin-top:4px">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1151,6 +1176,37 @@ async function blockUser() {
 }
 
 
+const svcRegistry = {}
+let ovSelectedExtras = new Set()
+
+function openSvcDetail(svcId) {
+  const s = svcRegistry[svcId]; if (!s) return
+  const gallery = document.getElementById('svc-detail-gallery')
+  const items = []
+  if (s.video_url) items.push(`<video src="${s.video_url}" style="height:220px;min-width:260px;max-width:85vw;border-radius:var(--r12);object-fit:cover;flex-shrink:0" controls playsinline>`)
+  ;(s.photos||[]).forEach(p => items.push(`<img src="${p}" style="height:220px;min-width:200px;max-width:85vw;border-radius:var(--r12);object-fit:cover;flex-shrink:0">`))
+  if (!items.length) {
+    const em = EMOJIS[s.category]||'✨'; const bg = BGS[s.category]||'#F0F0EC'
+    items.push(`<div style="height:160px;min-width:280px;max-width:85vw;border-radius:var(--r12);background:${bg};display:flex;align-items:center;justify-content:center;font-size:52px;flex-shrink:0">${em}</div>`)
+  }
+  gallery.innerHTML = items.join('')
+  document.getElementById('svc-detail-emoji').textContent = EMOJIS[s.category]||'✨'
+  document.getElementById('svc-detail-name').textContent  = s.name
+  document.getElementById('svc-detail-cat').textContent   = s.category
+  document.getElementById('svc-detail-desc').textContent  = s.description||''
+  const wrap = document.getElementById('svc-detail-fulldesc-wrap')
+  if (s.full_description) { document.getElementById('svc-detail-fulldesc').textContent = s.full_description; wrap.classList.remove('hide') }
+  else wrap.classList.add('hide')
+  document.getElementById('svc-detail-overlay').classList.add('on')
+}
+function closeSvcDetail() { document.getElementById('svc-detail-overlay').classList.remove('on') }
+
+function toggleSvcSelect(svcId, btn) {
+  event.stopPropagation()
+  if (ovSelectedExtras.has(svcId)) { ovSelectedExtras.delete(svcId); btn.textContent = 'Select'; btn.classList.remove('on') }
+  else { ovSelectedExtras.add(svcId); btn.textContent = '✓ Selected'; btn.classList.add('on') }
+}
+
 let obAvatarUrl = null
 let obMediaUrl = null
 let obMediaType = null
@@ -1596,8 +1652,8 @@ async function openProf(id, focusSvcId) {
   document.getElementById('pbio-el').textContent  = u.bio || ''
 
   // ── services section ──
-  const xBtnLabel = req?.status === 'confirmed' ? 'Open Chat →' : req?.status === 'pending' ? '✓ Pending' : 'Interested →'
-  const xBtnColor = req?.status === 'pending' ? 'var(--tx3)' : 'var(--g)'
+  svcs.forEach(s => { svcRegistry[s.id] = s })
+  ovSelectedExtras = new Set()
   let svcHtml = ''
   if (focusSvc) {
     const focusMedia = focusSvc.video_url
@@ -1606,30 +1662,38 @@ async function openProf(id, focusSvcId) {
         ? `<img src="${focusSvc.photos[0]}" style="width:100%;height:150px;border-radius:var(--r12);object-fit:cover;margin:8px 0;display:block">`
         : `<div style="width:100%;height:80px;border-radius:var(--r12);background:${BGS[focusSvc.category]||'#F0F0EC'};display:flex;align-items:center;justify-content:center;font-size:36px;margin:8px 0">${EMOJIS[focusSvc.category]||'✨'}</div>`
     svcHtml += `<div class="slbl">Skill you're looking at</div>
-      <div class="sitem" id="svc-${focusSvc.id}" style="border:2px solid var(--g)">
+      <div class="sitem" id="svc-${focusSvc.id}" style="border:2px solid var(--g);cursor:pointer" onclick="openSvcDetail('${focusSvc.id}')">
         ${focusMedia}
-        <div class="siname" style="font-size:15px">${focusSvc.name}</div>
-        <div class="sidesc" style="margin-top:3px">${focusSvc.description||''}</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div class="siname" style="font-size:15px">${focusSvc.name}</div>
+            <div class="sidesc" style="margin-top:3px">${focusSvc.description||''}</div>
+          </div>
+          <div style="font-size:11px;color:var(--tx3);flex-shrink:0;padding-top:3px">Details →</div>
+        </div>
       </div>`
     const others = svcs.filter(s => s.id !== focusSvcId)
     if (others.length) {
-      svcHtml += `<div class="slbl" style="margin-top:16px">More skills from ${u.name.split(' ')[0]}</div>`
+      svcHtml += `<div class="slbl" style="margin-top:16px">More from ${u.name.split(' ')[0]}</div>`
       svcHtml += others.map(s => {
         const thumb = s.video_url
           ? `<video src="${s.video_url}" style="width:52px;height:52px;border-radius:var(--r8);object-fit:cover;flex-shrink:0" muted playsinline loop autoplay>`
           : s.photos?.[0]
             ? `<img src="${s.photos[0]}" style="width:52px;height:52px;border-radius:var(--r8);object-fit:cover;flex-shrink:0">`
             : `<div style="width:52px;height:52px;border-radius:var(--r8);background:${BGS[s.category]||'#F0F0EC'};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${EMOJIS[s.category]||'✨'}</div>`
-        return `<div class="sitem" id="svc-${s.id}" style="display:flex;align-items:center;gap:11px;cursor:pointer" onclick="pingExtraSvc('${id}','${u.name}','${s.id}')">
+        return `<div class="sitem" id="svc-${s.id}" style="display:flex;align-items:center;gap:11px;cursor:pointer" onclick="openSvcDetail('${s.id}')">
           ${thumb}
           <div style="flex:1;min-width:0">
             <div class="siname">${s.name}</div>
             <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
               <div class="cpill" style="font-size:10px;padding:1px 7px">${s.category}</div>
-              <div class="sidesc" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.description||''}</div>
+              <div class="sidesc" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${s.description||''}</div>
             </div>
           </div>
-          <div id="xsvc-btn-${s.id}" style="font-size:11px;font-weight:700;color:${xBtnColor};flex-shrink:0;white-space:nowrap">${xBtnLabel}</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-right:2px">
+            <button id="sel-btn-${s.id}" class="sel-btn" onclick="toggleSvcSelect('${s.id}',this)">Select</button>
+            <div style="font-size:10px;color:var(--tx3)">Details →</div>
+          </div>
         </div>`
       }).join('')
     }
@@ -1638,7 +1702,7 @@ async function openProf(id, focusSvcId) {
       const media = s.video_url
         ? `<video src="${s.video_url}" style="width:70px;height:70px;border-radius:var(--r8);object-fit:cover;flex-shrink:0" muted playsinline loop autoplay>`
         : (s.photos||[]).length ? (s.photos||[]).map(p=>`<img class="sphot" src="${p}">`).join('') : '<div class="sphot-ph">📷</div>'
-      return `<div class="sitem" id="svc-${s.id}"><div class="siname">${s.name}</div><div class="sidesc">${s.description||''}</div><div class="sphots">${media}</div></div>`
+      return `<div class="sitem" id="svc-${s.id}" style="cursor:pointer" onclick="openSvcDetail('${s.id}')"><div class="siname">${s.name}</div><div class="sidesc">${s.description||''}</div><div class="sphots">${media}</div></div>`
     }).join('')
   }
   document.getElementById('pservs-el').innerHTML = svcHtml
@@ -1658,25 +1722,6 @@ async function openProf(id, focusSvcId) {
   document.getElementById('overlay').classList.add('on')
 }
 
-async function pingExtraSvc(toId, toName, svcId) {
-  const { data: existing } = await sb.from('requests').select('status').eq('from_user', ME.id).eq('to_user', toId).maybeSingle()
-  const { data: incoming } = await sb.from('requests').select('status').eq('from_user', toId).eq('to_user', ME.id).maybeSingle()
-  const req = existing || incoming
-  if (req?.status === 'confirmed') { closeOv(); openChatByUserId(toId); return }
-  if (req?.status === 'pending') {
-    toast('Request already sent — waiting for a reply')
-    const btn = document.getElementById('xsvc-btn-' + svcId)
-    if (btn) { btn.textContent = '✓ Pending'; btn.style.color = 'var(--tx3)' }
-    return
-  }
-  const { error } = await sb.from('requests').insert({ from_user: ME.id, to_user: toId })
-  if (error) { toast('Error: ' + error.message); return }
-  document.querySelectorAll('[id^="xsvc-btn-"]').forEach(el => { el.textContent = '✓ Sent'; el.style.color = 'var(--tx3)' })
-  const mainBtn = document.getElementById('pintbtn')
-  mainBtn.textContent = '✓ Request sent'; mainBtn.className = 'btn-main sent'; mainBtn.onclick = null
-  toast(`Request sent to ${toName}!`)
-  await notify(toId, 'new_request', 'New swap request', `${ME.name} wants to swap skills with you`)
-}
 function closeOv() { document.getElementById('overlay').classList.remove('on') }
 
 async function sendReq(toId, toName) {
@@ -2455,7 +2500,8 @@ async function loadProf() {
       <div id="svcs-list">${svcs.map(s=>`<div class="msr"><span>${s.name} — ${s.description||''}</span><button class="delb" onclick="delServ('${s.id}')">✕</button></div>`).join('')}</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <input id="s-name" type="text" placeholder="Skill name..." style="border:1px solid var(--bdm);border-radius:var(--r8);padding:9px 12px;font-size:13px;background:var(--bg);font-family:inherit;outline:none;width:100%;transition:border-color .15s" onfocus="this.style.borderColor='var(--g)'" onblur="this.style.borderColor='var(--bdm)'">
-        <input id="s-desc" type="text" placeholder="Short description..." style="border:1px solid var(--bdm);border-radius:var(--r8);padding:9px 12px;font-size:13px;background:var(--bg);font-family:inherit;outline:none;width:100%;transition:border-color .15s" onfocus="this.style.borderColor='var(--g)'" onblur="this.style.borderColor='var(--bdm)'">
+        <input id="s-desc" type="text" placeholder="Short description (shown in the feed)..." style="border:1px solid var(--bdm);border-radius:var(--r8);padding:9px 12px;font-size:13px;background:var(--bg);font-family:inherit;outline:none;width:100%;transition:border-color .15s" onfocus="this.style.borderColor='var(--g)'" onblur="this.style.borderColor='var(--bdm)'">
+        <textarea id="s-fulldesc" placeholder="Full description (optional) — shown when someone taps Details on your service" style="border:1px solid var(--bdm);border-radius:var(--r8);padding:9px 12px;font-size:13px;background:var(--bg);font-family:inherit;outline:none;width:100%;min-height:72px;resize:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--g)'" onblur="this.style.borderColor='var(--bdm)'"></textarea>
         <select id="s-cat" style="border:1px solid var(--bdm);border-radius:var(--r8);padding:9px 12px;font-size:13px;background:var(--bg);font-family:inherit;outline:none;width:100%">
           <option>Health</option><option>Arts</option><option>Food</option><option>Music</option><option>Design</option><option>Languages</option><option>Sports</option><option>Technology</option><option>Childcare</option><option>Home</option><option>Beauty</option><option>Photography</option><option>Writing</option><option>Events</option><option>Education</option><option>Pets</option><option>Other</option>
         </select>
@@ -2585,17 +2631,20 @@ async function addServ() {
   const descEl = document.getElementById('s-desc')
   const catEl  = document.getElementById('s-cat')
   if (!nameEl) { toast('Error — please refresh'); return }
-  const name = nameEl.value.trim()
-  const desc = descEl.value.trim()
-  const cat  = catEl.value
+  const fulldescEl = document.getElementById('s-fulldesc')
+  const name     = nameEl.value.trim()
+  const desc     = descEl.value.trim()
+  const fulldesc = fulldescEl?.value.trim() || ''
+  const cat      = catEl.value
   if (!name) { toast('Enter a skill name'); return }
   if (!profMediaUrl) { toast('Please add a photo or video for this skill'); return }
   const serviceData = { user_id: ME.id, name, description: desc, category: cat }
+  if (fulldesc) serviceData.full_description = fulldesc
   if (profMediaType === 'video') serviceData.video_url = profMediaUrl
   else serviceData.photos = [profMediaUrl]
   const { error } = await sb.from('services').insert(serviceData)
   if (error) { toast('Error: ' + error.message); return }
-  nameEl.value = ''; descEl.value = ''
+  nameEl.value = ''; descEl.value = ''; if (fulldescEl) fulldescEl.value = ''
   profMediaUrl = null; profMediaType = null
   document.getElementById('s-media-preview').innerHTML = '🖼️'
   document.getElementById('s-media-name').textContent = 'Add photo or video'
