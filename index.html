@@ -1669,7 +1669,7 @@ async function openProf(id, focusSvcId) {
             <div class="siname" style="font-size:15px">${focusSvc.name}</div>
             <div class="sidesc" style="margin-top:3px">${focusSvc.description||''}</div>
           </div>
-          <div style="font-size:11px;color:var(--tx3);flex-shrink:0;padding-top:3px">Details →</div>
+          <button onclick="event.stopPropagation();openSvcDetail('${focusSvc.id}')" style="padding:5px 11px;border-radius:var(--r20);border:1.5px solid var(--bdm);background:transparent;color:var(--tx2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0">Details →</button>
         </div>
       </div>`
     const others = svcs.filter(s => s.id !== focusSvcId)
@@ -1692,7 +1692,7 @@ async function openProf(id, focusSvcId) {
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-right:2px">
             <button id="sel-btn-${s.id}" class="sel-btn" onclick="toggleSvcSelect('${s.id}',this)">Select</button>
-            <div style="font-size:10px;color:var(--tx3)">Details →</div>
+            <button class="sel-btn" onclick="openSvcDetail('${s.id}')">Details →</button>
           </div>
         </div>`
       }).join('')
