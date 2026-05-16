@@ -910,6 +910,17 @@ function showOnboarding() {
   if (ME?.name) nameInp.value = ME.name
 }
 
+async function toggleFav(uid, btn) {
+  if (!ME) return
+  const favs = ME.favorites || []
+  const isFav = favs.includes(uid)
+  const updated = isFav ? favs.filter(id => id !== uid) : [...favs, uid]
+  btn.textContent = isFav ? '🤍' : '❤️'
+  ME.favorites = updated
+  try { localStorage.setItem('sw_me_' + ME.id, JSON.stringify(ME)) } catch(e) {}
+  await sb.from('profiles').update({ favorites: updated }).eq('id', ME.id)
+}
+
 function toggleFilterPanel() {
   const panel = document.getElementById('filter-panel')
   const btn   = document.getElementById('filter-btn')
@@ -1164,9 +1175,12 @@ function goTab(id) {
 }
 
 // ── CHIPS ──
-document.getElementById('chips').innerHTML = CATS.map(c =>
-  `<button class="chip${c==='All'?' on':''}" onclick="pickCat('${c}',this)">${c}</button>`
-).join('')
+document.getElementById('chips').innerHTML =
+  `<button class="chip on" onclick="pickCat('All',this)">All</button>` +
+  `<button class="chip" onclick="pickCat('Saved',this)">❤️ Saved</button>` +
+  CATS.filter(c=>c!=='All').map(c =>
+    `<button class="chip" onclick="pickCat('${c}',this)">${c}</button>`
+  ).join('')
 function pickCat(c, el) {
   activeCat = c
   document.querySelectorAll('.chip').forEach(x => x.classList.remove('on'))
@@ -1200,7 +1214,8 @@ async function loadFeed() {
     if (!users) users = []
     let list = users.filter(u => {
       const svcs = u.services || []
-      const matchCat = activeCat === 'All' || svcs.some(s => s.category === activeCat)
+      const isSaved = (ME?.favorites || []).includes(u.id)
+      const matchCat = activeCat === 'All' || activeCat === 'Saved' ? (activeCat !== 'Saved' || isSaved) : svcs.some(s => s.category === activeCat)
       const matchQ = !q || u.name.toLowerCase().includes(q) || svcs.some(s => (s.name+' '+(s.description||'')).toLowerCase().includes(q))
       const matchLoc = !loc || (u.location||'').toLowerCase().includes(loc)
       return matchCat && matchQ && matchLoc && svcs.length > 0
@@ -1227,12 +1242,14 @@ async function loadFeed() {
         ? `<img src="${photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
         : `<span style="font-size:36px">${emoji}</span>`
       const avInner = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials || u.name.substring(0,2))
+      const isFav = (ME?.favorites || []).includes(u.id)
       return `<div class="ocard" onclick="openProf('${u.id}')">
         <div class="card-left" style="background:${bg}">${imgInner}</div>
         <div class="card-right">
           <div class="card-user-row">
             <div class="av" style="width:26px;height:26px;font-size:10px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avInner}</div>
-            <div><div class="card-uname">${u.name}</div><div class="card-loc">${u.location||''}</div></div>
+            <div style="flex:1;min-width:0"><div class="card-uname">${u.name}</div><div class="card-loc">${u.location||''}</div></div>
+            <button onclick="event.stopPropagation();toggleFav('${u.id}',this)" style="background:none;border:none;cursor:pointer;font-size:18px;padding:2px 4px;flex-shrink:0;line-height:1">${isFav?'❤️':'🤍'}</button>
           </div>
           <div class="card-title">${first.name}${svcs.length>1?`<span style="font-size:11px;color:var(--tx3);font-weight:400;margin-right:4px">+${svcs.length-1}</span>`:''}</div>
           <div class="card-desc">${first.description||''}</div>
