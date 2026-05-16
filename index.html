@@ -539,6 +539,13 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
           <div id="chdr-av" class="av" style="width:32px;height:32px;font-size:12px"></div>
           <div style="flex:1"><div style="font-size:14px;font-weight:600" id="chdr-name"></div><div style="font-size:11px;color:var(--tx2)" id="chdr-sub"></div></div>
           <button onclick="openDealCreate()" style="background:var(--gl);border:none;border-radius:var(--r8);padding:6px 10px;font-size:12px;font-weight:600;color:var(--gd);cursor:pointer;white-space:nowrap">📋 Deal</button>
+          <div style="position:relative">
+            <button onclick="toggleChatMenu()" id="chat-menu-btn" style="background:none;border:none;cursor:pointer;color:var(--tx3);padding:4px 6px;font-size:18px;line-height:1">⋮</button>
+            <div id="chat-menu" class="hide" style="position:absolute;top:32px;right:0;background:var(--sur);border:1px solid var(--bd);border-radius:var(--r12);box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:50;min-width:140px;overflow:hidden">
+              <button onclick="openReportFromChat();toggleChatMenu()" style="display:block;width:100%;padding:11px 14px;text-align:left;background:none;border:none;border-bottom:1px solid var(--bd);font-size:13px;color:var(--tx2);cursor:pointer;font-family:inherit">🚩 Report user</button>
+              <button onclick="blockUser();toggleChatMenu()" style="display:block;width:100%;padding:11px 14px;text-align:left;background:none;border:none;font-size:13px;color:#dc2626;cursor:pointer;font-family:inherit">🚫 Block user</button>
+            </div>
+          </div>
         </div>
         <div id="deal-bar"></div>
         <div class="msgs" id="msgs"></div>
@@ -603,11 +610,15 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
         <input type="text" id="deal-their-offer" placeholder="e.g. 3 one-hour Spanish lessons">
       </div>
       <div class="edit-fg">
-        <label>Deal deadline 📅</label>
-        <input type="date" id="deal-deadline">
+        <label>My delivery deadline 📅 <span style="font-weight:400;color:var(--tx3)">(when I'll deliver)</span></label>
+        <input type="date" id="deal-my-deadline">
+      </div>
+      <div class="edit-fg">
+        <label>Their delivery deadline 📅 <span style="font-weight:400;color:var(--tx3)">(when they'll deliver)</span></label>
+        <input type="date" id="deal-their-deadline">
       </div>
       <div style="background:var(--bg);border-radius:var(--r8);padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--tx2);line-height:1.6">
-        📧 Both parties will receive an email reminder one day before the deadline.
+        📧 Each side gets a reminder on their deadline day.
       </div>
       <button class="btn-g" id="deal-submit-btn" onclick="createDeal()">Send for approval ✓</button>
     </div>
@@ -781,17 +792,18 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 </div>
 
 <!-- RATING -->
-<div class="rate-overlay" id="rate-modal" onclick="if(event.target===this)this.classList.remove('on')">
+<div class="rate-overlay" id="rate-modal">
   <div class="rate-box">
-    <div style="font-size:17px;font-weight:700;margin-bottom:4px">Rate the Deal</div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:2px">Rate the Deal</div>
+    <div style="font-size:11px;color:var(--g);font-weight:600;margin-bottom:4px">Required to close the deal</div>
     <div style="font-size:13px;color:var(--tx2)" id="rate-sub"></div>
     <div class="stars-row">
       <span class="star" onclick="setStar(1)">★</span><span class="star" onclick="setStar(2)">★</span>
       <span class="star" onclick="setStar(3)">★</span><span class="star" onclick="setStar(4)">★</span>
       <span class="star" onclick="setStar(5)">★</span>
     </div>
-    <textarea id="rtxt" style="width:100%;border:1px solid var(--bdm);border-radius:var(--r12);padding:10px;font-size:14px;background:var(--bg);font-family:inherit;outline:none;min-height:80px;resize:none" placeholder="Leave a short review..."></textarea>
-    <button class="btn-main" style="margin-top:12px" onclick="submitRate()">Submit Rating</button>
+    <textarea id="rtxt" style="width:100%;border:1px solid var(--bdm);border-radius:var(--r12);padding:10px;font-size:14px;background:var(--bg);font-family:inherit;outline:none;min-height:80px;resize:none" placeholder="How did it go? (optional)"></textarea>
+    <button class="btn-main" style="margin-top:12px" onclick="submitRate()">Submit & Close Deal ✓</button>
   </div>
 </div>
 
@@ -919,6 +931,30 @@ async function toggleFav(uid, btn) {
   ME.favorites = updated
   try { localStorage.setItem('sw_me_' + ME.id, JSON.stringify(ME)) } catch(e) {}
   await sb.from('profiles').update({ favorites: updated }).eq('id', ME.id)
+}
+
+function toggleChatMenu() {
+  const m = document.getElementById('chat-menu')
+  m.classList.toggle('hide')
+  const close = (e) => { if (!document.getElementById('chat-menu-btn').contains(e.target)) { m.classList.add('hide'); document.removeEventListener('click', close) } }
+  if (!m.classList.contains('hide')) setTimeout(() => document.addEventListener('click', close), 0)
+}
+function openReportFromChat() {
+  if (!activeChatOtherId) return
+  document.getElementById('report-overlay').dataset.userId = activeChatOtherId
+  document.getElementById('report-overlay').dataset.dealId = ''
+  openOverlay('report-overlay')
+}
+async function blockUser() {
+  if (!activeChatOtherId || !ME) return
+  const blocked = ME.blocked_users || []
+  if (blocked.includes(activeChatOtherId)) { toast('Already blocked'); return }
+  if (!confirm('Block this user? They will no longer be able to message you.')) return
+  const updated = [...blocked, activeChatOtherId]
+  ME.blocked_users = updated
+  await sb.from('profiles').update({ blocked_users: updated }).eq('id', ME.id)
+  toast('User blocked')
+  closeChat()
 }
 
 function toggleFilterPanel() {
@@ -1443,18 +1479,49 @@ async function loadChatList() {
   document.getElementById('clist-view').classList.remove('hide')
   document.getElementById('cwin').classList.add('hide')
   if (!ME) return
-  const { data } = await sb.from('requests')
-    .select('id, from_user, to_user, from_profile:profiles!requests_from_user_fkey(*), to_profile:profiles!requests_to_user_fkey(*)')
-    .or(`from_user.eq.${ME.id},to_user.eq.${ME.id}`)
-    .eq('status','confirmed')
-  const list = data || []
+  const [reqRes, dealRes] = await Promise.all([
+    sb.from('requests')
+      .select('id, from_user, to_user, from_profile:profiles!requests_from_user_fkey(*), to_profile:profiles!requests_to_user_fkey(*)')
+      .or(`from_user.eq.${ME.id},to_user.eq.${ME.id}`)
+      .eq('status','confirmed'),
+    sb.from('deals')
+      .select('request_id, status')
+      .or(`creator_id.eq.${ME.id},other_id.eq.${ME.id}`)
+  ])
+  const list = reqRes.data || []
   if (!list.length) { document.getElementById('clist').innerHTML = '<div class="empty">No chats yet</div>'; return }
-  document.getElementById('clist').innerHTML = list.map(r => {
+  const dealMap = {}
+  ;(dealRes.data || []).forEach(d => { dealMap[d.request_id] = d.status })
+
+  const active = [], regular = []
+  list.forEach(r => {
+    const st = dealMap[r.id]
+    if (st === 'active' || st === 'pending_approval') active.push({ r, dealStatus: st })
+    else regular.push({ r, dealStatus: st })
+  })
+
+  function renderItem({ r, dealStatus }) {
     const u = r.from_user === ME.id ? r.to_profile : r.from_profile
     const otherId = r.from_user === ME.id ? r.to_user : r.from_user
     const avIn = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials||u.name.substring(0,2))
-    return `<div class="citem" onclick="openChatByUserId('${otherId}')"><div class="av" style="width:42px;height:42px;font-size:14px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avIn}</div><div><div class="ciname">${u.name}</div><div class="cilast">Tap to open chat</div></div></div>`
-  }).join('')
+    let badge = ''
+    if (dealStatus === 'active') badge = `<span style="font-size:10px;background:#E8F5EE;color:var(--gd);border-radius:10px;padding:2px 7px;font-weight:600">🤝 Active deal</span>`
+    else if (dealStatus === 'pending_approval') badge = `<span style="font-size:10px;background:#FFF8E7;color:#BA7517;border-radius:10px;padding:2px 7px;font-weight:600">⏳ Pending</span>`
+    else if (dealStatus === 'completed') badge = `<span style="font-size:10px;background:#E8F5EE;color:var(--gd);border-radius:10px;padding:2px 7px;font-weight:600">✅ Done</span>`
+    return `<div class="citem" onclick="openChatByUserId('${otherId}')">
+      <div class="av" style="width:42px;height:42px;font-size:14px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avIn}</div>
+      <div style="flex:1;min-width:0"><div class="ciname">${u.name}</div><div style="margin-top:3px">${badge}</div></div>
+    </div>`
+  }
+
+  let html = ''
+  if (active.length) {
+    html += `<div style="padding:8px 16px 4px;font-size:11px;font-weight:600;color:var(--gd);text-transform:uppercase;letter-spacing:.5px">Active Deals</div>`
+    html += active.map(renderItem).join('')
+    if (regular.length) html += `<div style="height:1px;background:var(--bd);margin:4px 0"></div><div style="padding:8px 16px 4px;font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Other Chats</div>`
+  }
+  html += regular.map(renderItem).join('')
+  document.getElementById('clist').innerHTML = html
 }
 function closeChat() {
   activeChatReqId = null; activeChatOtherId = null
@@ -1493,15 +1560,19 @@ async function renderDealBar(reqId) {
   const iAmCreator = deal.creator_id === ME.id
   const myDone = iAmCreator ? deal.creator_done : deal.other_done
   const otherDone = iAmCreator ? deal.other_done : deal.creator_done
+  const myDeadlineStr  = iAmCreator ? deal.deadline_user1 : deal.deadline_user2
+  const theirDeadlineStr = iAmCreator ? deal.deadline_user2 : deal.deadline_user1
+  const myDeadlinePassed   = myDeadlineStr && new Date(myDeadlineStr) < new Date()
+  const theirDeadlinePassed = theirDeadlineStr && new Date(theirDeadlineStr) < new Date()
   const deadlinePassed = deal.deadline && new Date(deal.deadline) < new Date()
-  const deadlineStr = deal.deadline ? new Date(deal.deadline).toLocaleDateString('en-US') : ''
+  const deadlineStr = [myDeadlineStr && `Me: ${myDeadlineStr}`, theirDeadlineStr && `Them: ${theirDeadlineStr}`].filter(Boolean).join(' · ') || (deal.deadline ? new Date(deal.deadline).toLocaleDateString('en-US') : '')
   // who last submitted/edited — that person waits; the other approves
   const iAmWaiting = deal.last_editor_id ? deal.last_editor_id === ME.id : iAmCreator
 
   // 1-day reminder (client-side)
-  if (deal.status === 'active' && deal.deadline && !deadlinePassed) {
-    const hoursLeft = (new Date(deal.deadline) - Date.now()) / 3600000
-    if (hoursLeft <= 24 && hoursLeft > 0) toast('⏰ Reminder: this deal is due tomorrow!')
+  if (deal.status === 'active' && myDeadlineStr && !myDeadlinePassed) {
+    const hoursLeft = (new Date(myDeadlineStr) - Date.now()) / 3600000
+    if (hoursLeft <= 24 && hoursLeft > 0) toast('⏰ Reminder: your delivery deadline is tomorrow!')
   }
 
   if (deal.status === 'pending_approval') {
@@ -1533,13 +1604,12 @@ async function renderDealBar(reqId) {
     const countdown = deal.deadline ? formatCountdown(deal.deadline) : null
     const countdownColor = (() => { if (!deal.deadline) return 'var(--gd)'; const h = (new Date(deal.deadline)-Date.now())/3600000; return h<24?'#c00':h<72?'#BA7517':'var(--gd)' })()
 
-    if (deadlinePassed) {
-      // Time is up — show rate or report
+    if (myDeadlinePassed && !myDone) {
       bar.innerHTML = `<div style="background:#FFF8E7;padding:12px 14px;border-bottom:1px solid var(--bdm)">
-        <div style="font-size:13px;font-weight:700;color:#633806;margin-bottom:4px">⏰ Deal deadline reached!</div>
-        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">How did this deal go?</div>
+        <div style="font-size:13px;font-weight:700;color:#633806;margin-bottom:4px">⏰ Your delivery deadline has passed</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">Did you deliver your side of the deal?</div>
         <div style="display:flex;gap:8px">
-          <button onclick="markDone('${deal.id}')" style="flex:1;padding:10px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">✅ Done — Rate</button>
+          <button onclick="markDone('${deal.id}')" style="flex:1;padding:10px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">✅ Yes — Rate & close</button>
           <button onclick="openReportForm('${deal.id}')" style="flex:1;padding:10px;border-radius:var(--r8);background:transparent;color:#c00;border:1.5px solid #c00;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit">⚠️ Report issue</button>
         </div>
       </div>`
@@ -1587,8 +1657,10 @@ function openDealCreate() {
   document.getElementById('deal-overlay-title').textContent = '📋 Create Agreement'
   document.getElementById('deal-submit-btn').textContent = 'Send for approval ✓'
   const today = new Date().toISOString().split('T')[0]
-  document.getElementById('deal-deadline').min = today
-  document.getElementById('deal-deadline').value = ''
+  document.getElementById('deal-my-deadline').min = today
+  document.getElementById('deal-their-deadline').min = today
+  document.getElementById('deal-my-deadline').value = ''
+  document.getElementById('deal-their-deadline').value = ''
   document.getElementById('deal-my-offer').value = ''
   document.getElementById('deal-their-offer').value = ''
   openOverlay('deal-overlay')
@@ -1600,24 +1672,30 @@ function openDealEdit() {
   document.getElementById('deal-overlay-title').textContent = '✏️ Edit Agreement'
   document.getElementById('deal-submit-btn').textContent = 'Update & resubmit for approval ✓'
   const today = new Date().toISOString().split('T')[0]
-  document.getElementById('deal-deadline').min = today
+  document.getElementById('deal-my-deadline').min = today
+  document.getElementById('deal-their-deadline').min = today
   document.getElementById('deal-my-offer').value = activeDeal.my_offer || ''
   document.getElementById('deal-their-offer').value = activeDeal.their_offer || ''
-  document.getElementById('deal-deadline').value = activeDeal.deadline ? activeDeal.deadline.split('T')[0] : ''
+  document.getElementById('deal-my-deadline').value = activeDeal.deadline_user1 || ''
+  document.getElementById('deal-their-deadline').value = activeDeal.deadline_user2 || ''
   openOverlay('deal-overlay')
 }
 
 async function createDeal() {
-  const myOffer    = document.getElementById('deal-my-offer').value.trim()
-  const theirOffer = document.getElementById('deal-their-offer').value.trim()
-  const deadlineVal = document.getElementById('deal-deadline').value
+  const myOffer      = document.getElementById('deal-my-offer').value.trim()
+  const theirOffer   = document.getElementById('deal-their-offer').value.trim()
+  const myDlVal      = document.getElementById('deal-my-deadline').value
+  const theirDlVal   = document.getElementById('deal-their-deadline').value
   if (!myOffer)    { toast('What are you offering?'); return }
   if (!theirOffer) { toast('What is the other side offering?'); return }
-  if (!deadlineVal){ toast('Please choose a deadline'); return }
+  if (!myDlVal)    { toast('Set your delivery deadline'); return }
+  if (!theirDlVal) { toast("Set the other side's delivery deadline"); return }
   if (!activeChatReqId || !activeChatOtherId) return
   const btn = document.getElementById('deal-submit-btn')
-  const deadline = new Date(deadlineVal + 'T23:59:00').toISOString()
-  const dl = new Date(deadline).toLocaleDateString('en-US')
+  const deadline_user1 = myDlVal
+  const deadline_user2 = theirDlVal
+  const deadline = new Date(Math.max(new Date(myDlVal), new Date(theirDlVal))).toISOString()
+  const dl = `${myDlVal} / ${theirDlVal}`
 
   if (dealEditMode && activeDeal) {
     btn.disabled = true; btn.textContent = 'Updating...'
@@ -1625,6 +1703,7 @@ async function createDeal() {
       const { error } = await withTimeout(
         sb.from('deals').update({
           my_offer: myOffer, their_offer: theirOffer, deadline,
+          deadline_user1, deadline_user2,
           status: 'pending_approval', last_editor_id: ME.id,
           creator_done: false, other_done: false
         }).eq('id', activeDeal.id), 7000)
@@ -1647,7 +1726,7 @@ async function createDeal() {
   const terms = `I offer: ${myOffer}\nOther side offers: ${theirOffer}`
   try {
     const { error } = await withTimeout(
-      sb.from('deals').insert({ request_id: activeChatReqId, creator_id: ME.id, other_id: activeChatOtherId, terms, my_offer: myOffer, their_offer: theirOffer, deadline, last_editor_id: ME.id }), 7000)
+      sb.from('deals').insert({ request_id: activeChatReqId, creator_id: ME.id, other_id: activeChatOtherId, terms, my_offer: myOffer, their_offer: theirOffer, deadline, deadline_user1, deadline_user2, last_editor_id: ME.id }), 7000)
     posthog.capture('deal_created')
     if (error) throw error
     await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: `📋 I sent an agreement for your approval — deadline: ${dl}` })
@@ -1690,19 +1769,18 @@ async function markDone(dealId) {
   const otherDone = iAmCreator ? activeDeal?.other_done : activeDeal?.creator_done
   if (otherDone) update.status = 'completed'
   await withTimeout(sb.from('deals').update(update).eq('id', dealId), 6000)
-  if (otherDone) posthog.capture('deal_completed', { deal_id: dealId })
   if (otherDone) {
+    posthog.capture('deal_completed', { deal_id: dealId })
     await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '🎉 Both sides confirmed — deal completed successfully!' })
     if (activeChatOtherId) await notify(activeChatOtherId, 'deal_done', 'Deal completed! 🎉', 'Both sides confirmed — well done!')
-    toast('🎉 Deal completed!')
-    openRate(activeChatReqId, activeChatOtherId, document.getElementById('chdr-name').textContent)
   } else {
     await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: '✅ I marked my side as done — waiting for your confirmation' })
     if (activeChatOtherId) await notify(activeChatOtherId, 'deal_half_done', ME.name + ' finished their side ✅', 'Mark yours too to close the deal')
-    toast('✓ Marked — waiting for the other side')
   }
   await renderDealBar(activeChatReqId)
   await renderMsgs()
+  // Mandatory review — always open after marking done
+  openRate(activeChatReqId, activeChatOtherId, document.getElementById('chdr-name').textContent)
 }
 
 function openReportForm(dealId) {
