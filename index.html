@@ -1562,12 +1562,22 @@ async function loadFeed() {
 async function openProf(id, focusSvcId) {
   if (!ME) return
   viewUserId = id
-  const { data: u }       = await sb.from('profiles').select('*, services(*)').eq('id', id).single()
-  const { data: reviews } = await sb.from('reviews').select('*, reviewer:profiles!reviews_reviewer_id_fkey(name)').eq('reviewed_id', id).order('created_at',{ascending:false}).limit(5)
+  const [
+    { data: u },
+    { data: reviews },
+    { data: existing },
+    { data: incoming }
+  ] = await Promise.all([
+    sb.from('profiles').select('*, services(*)').eq('id', id).single(),
+    sb.from('reviews').select('*, reviewer:profiles!reviews_reviewer_id_fkey(name)').eq('reviewed_id', id).order('created_at',{ascending:false}).limit(5),
+    sb.from('requests').select('status').eq('from_user', ME.id).eq('to_user', id).maybeSingle(),
+    sb.from('requests').select('status').eq('from_user', id).eq('to_user', ME.id).maybeSingle()
+  ])
   if (!u) return
+  const req  = existing || incoming
   const svcs = u.services || []
-  const focusSvc = focusSvcId ? svcs.find(s => s.id === focusSvcId) : null
-  const coverSvc = focusSvc || svcs[0]
+  const focusSvc  = focusSvcId ? svcs.find(s => s.id === focusSvcId) : null
+  const coverSvc  = focusSvc || svcs[0]
   const allPhotos = svcs.flatMap(s => s.photos || [])
   const emoji = EMOJIS[coverSvc?.category] || '✨'
   const bg    = BGS[coverSvc?.category]    || '#F0F0EC'
@@ -1584,18 +1594,57 @@ async function openProf(id, focusSvcId) {
   document.getElementById('ploc-el').textContent  = u.location ? '📍 ' + u.location : ''
   document.getElementById('prate-el').textContent = `★ ${u.rating||5} · ${u.deals_count||0} deals`
   document.getElementById('pbio-el').textContent  = u.bio || ''
-  document.getElementById('pservs-el').innerHTML  = svcs.map(s => {
-    const media = s.video_url
-      ? `<video src="${s.video_url}" style="width:70px;height:70px;border-radius:var(--r8);object-fit:cover;flex-shrink:0" muted playsinline loop autoplay>`
-      : (s.photos||[]).length ? (s.photos||[]).map(p=>`<img class="sphot" src="${p}">`).join('') : '<div class="sphot-ph">📷</div>'
-    const hl = focusSvcId && s.id === focusSvcId ? 'border:2px solid var(--g);' : ''
-    return `<div class="sitem" id="svc-${s.id}" style="${hl}"><div class="siname">${s.name}</div><div class="sidesc">${s.description||''}</div><div class="sphots">${media}</div></div>`
-  }).join('')
+
+  // ── services section ──
+  const xBtnLabel = req?.status === 'confirmed' ? 'Open Chat →' : req?.status === 'pending' ? '✓ Pending' : 'Interested →'
+  const xBtnColor = req?.status === 'pending' ? 'var(--tx3)' : 'var(--g)'
+  let svcHtml = ''
+  if (focusSvc) {
+    const focusMedia = focusSvc.video_url
+      ? `<video src="${focusSvc.video_url}" style="width:100%;height:150px;border-radius:var(--r12);object-fit:cover;margin:8px 0;display:block" muted playsinline loop autoplay>`
+      : focusSvc.photos?.[0]
+        ? `<img src="${focusSvc.photos[0]}" style="width:100%;height:150px;border-radius:var(--r12);object-fit:cover;margin:8px 0;display:block">`
+        : `<div style="width:100%;height:80px;border-radius:var(--r12);background:${BGS[focusSvc.category]||'#F0F0EC'};display:flex;align-items:center;justify-content:center;font-size:36px;margin:8px 0">${EMOJIS[focusSvc.category]||'✨'}</div>`
+    svcHtml += `<div class="slbl">Skill you're looking at</div>
+      <div class="sitem" id="svc-${focusSvc.id}" style="border:2px solid var(--g)">
+        ${focusMedia}
+        <div class="siname" style="font-size:15px">${focusSvc.name}</div>
+        <div class="sidesc" style="margin-top:3px">${focusSvc.description||''}</div>
+      </div>`
+    const others = svcs.filter(s => s.id !== focusSvcId)
+    if (others.length) {
+      svcHtml += `<div class="slbl" style="margin-top:16px">More skills from ${u.name.split(' ')[0]}</div>`
+      svcHtml += others.map(s => {
+        const thumb = s.video_url
+          ? `<video src="${s.video_url}" style="width:52px;height:52px;border-radius:var(--r8);object-fit:cover;flex-shrink:0" muted playsinline loop autoplay>`
+          : s.photos?.[0]
+            ? `<img src="${s.photos[0]}" style="width:52px;height:52px;border-radius:var(--r8);object-fit:cover;flex-shrink:0">`
+            : `<div style="width:52px;height:52px;border-radius:var(--r8);background:${BGS[s.category]||'#F0F0EC'};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${EMOJIS[s.category]||'✨'}</div>`
+        return `<div class="sitem" id="svc-${s.id}" style="display:flex;align-items:center;gap:11px;cursor:pointer" onclick="pingExtraSvc('${id}','${u.name}','${s.id}')">
+          ${thumb}
+          <div style="flex:1;min-width:0">
+            <div class="siname">${s.name}</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:3px">
+              <div class="cpill" style="font-size:10px;padding:1px 7px">${s.category}</div>
+              <div class="sidesc" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.description||''}</div>
+            </div>
+          </div>
+          <div id="xsvc-btn-${s.id}" style="font-size:11px;font-weight:700;color:${xBtnColor};flex-shrink:0;white-space:nowrap">${xBtnLabel}</div>
+        </div>`
+      }).join('')
+    }
+  } else {
+    svcHtml = svcs.map(s => {
+      const media = s.video_url
+        ? `<video src="${s.video_url}" style="width:70px;height:70px;border-radius:var(--r8);object-fit:cover;flex-shrink:0" muted playsinline loop autoplay>`
+        : (s.photos||[]).length ? (s.photos||[]).map(p=>`<img class="sphot" src="${p}">`).join('') : '<div class="sphot-ph">📷</div>'
+      return `<div class="sitem" id="svc-${s.id}"><div class="siname">${s.name}</div><div class="sidesc">${s.description||''}</div><div class="sphots">${media}</div></div>`
+    }).join('')
+  }
+  document.getElementById('pservs-el').innerHTML = svcHtml
+
   document.getElementById('prevs-el').innerHTML = (reviews||[]).length
     ? `<div class="slbl" style="margin-top:14px">Reviews</div>${(reviews||[]).map(r=>`<div class="rv-item"><div class="rv-head"><div class="rv-name">${r.reviewer?.name||'User'}</div><div class="rv-stars">${'★'.repeat(r.stars)}</div></div><div class="rv-text">${r.text||''}</div></div>`).join('')}` : ''
-  const { data: existing } = await sb.from('requests').select('status').eq('from_user', ME.id).eq('to_user', id).maybeSingle()
-  const { data: incoming } = await sb.from('requests').select('status').eq('from_user', id).eq('to_user', ME.id).maybeSingle()
-  const req = existing || incoming
   const btn = document.getElementById('pintbtn')
   if (req?.status === 'confirmed') {
     btn.textContent = 'Open Chat'; btn.className = 'btn-main'
@@ -1607,10 +1656,26 @@ async function openProf(id, focusSvcId) {
     btn.onclick = () => sendReq(id, u.name)
   }
   document.getElementById('overlay').classList.add('on')
-  if (focusSvcId) setTimeout(() => {
-    const el = document.getElementById('svc-' + focusSvcId)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, 350)
+}
+
+async function pingExtraSvc(toId, toName, svcId) {
+  const { data: existing } = await sb.from('requests').select('status').eq('from_user', ME.id).eq('to_user', toId).maybeSingle()
+  const { data: incoming } = await sb.from('requests').select('status').eq('from_user', toId).eq('to_user', ME.id).maybeSingle()
+  const req = existing || incoming
+  if (req?.status === 'confirmed') { closeOv(); openChatByUserId(toId); return }
+  if (req?.status === 'pending') {
+    toast('Request already sent — waiting for a reply')
+    const btn = document.getElementById('xsvc-btn-' + svcId)
+    if (btn) { btn.textContent = '✓ Pending'; btn.style.color = 'var(--tx3)' }
+    return
+  }
+  const { error } = await sb.from('requests').insert({ from_user: ME.id, to_user: toId })
+  if (error) { toast('Error: ' + error.message); return }
+  document.querySelectorAll('[id^="xsvc-btn-"]').forEach(el => { el.textContent = '✓ Sent'; el.style.color = 'var(--tx3)' })
+  const mainBtn = document.getElementById('pintbtn')
+  mainBtn.textContent = '✓ Request sent'; mainBtn.className = 'btn-main sent'; mainBtn.onclick = null
+  toast(`Request sent to ${toName}!`)
+  await notify(toId, 'new_request', 'New swap request', `${ME.name} wants to swap skills with you`)
 }
 function closeOv() { document.getElementById('overlay').classList.remove('on') }
 
