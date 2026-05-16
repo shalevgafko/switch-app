@@ -325,6 +325,13 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 .ob-next:hover{background:#178a65;transform:translateY(-1px)}
 .ob-next:disabled{opacity:.6;cursor:default;transform:none}
 .ob-skip{width:100%;padding:11px;border-radius:var(--r12);background:transparent;color:var(--tx3);border:none;cursor:pointer;font-size:14px;font-family:inherit;margin-top:6px}
+.sf-radio{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--r8);cursor:pointer;transition:background .12s;font-size:14px;color:var(--tx2)}
+.sf-radio:hover{background:var(--bg)}
+.sf-radio input{accent-color:var(--g);width:16px;height:16px;flex-shrink:0}
+.sf-pill{padding:8px 14px;border-radius:var(--r20);border:1.5px solid var(--bdm);background:var(--bg);color:var(--tx2);font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s;font-weight:500}
+.sf-pill.on{background:var(--g);color:#fff;border-color:var(--g)}
+.af-chip{display:flex;align-items:center;gap:5px;background:var(--gl);border:1px solid var(--g);border-radius:var(--r20);padding:4px 10px;font-size:12px;color:var(--gd);font-weight:600;white-space:nowrap;flex-shrink:0}
+.af-chip button{background:none;border:none;cursor:pointer;color:var(--gd);font-size:13px;line-height:1;padding:0}
 .ob-cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .ob-cat{padding:8px 14px;border-radius:var(--r20);border:1.5px solid var(--bdm);background:var(--sur);color:var(--tx2);font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s;font-weight:500}
 .ob-cat.on{background:var(--g);color:#fff;border-color:var(--g)}
@@ -509,15 +516,12 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
       <div class="sbar">
         <svg width="16" height="16" fill="none" stroke="var(--tx3)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="text" id="si" placeholder="Search skills, people..." oninput="loadFeed()">
-        <button id="filter-btn" onclick="toggleFilterPanel()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:var(--r8);color:var(--tx3);display:flex;align-items:center;flex-shrink:0;transition:color .15s" title="Filter">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        <button id="sf-btn" onclick="openSortFilter()" style="background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:var(--r8);color:var(--tx3);display:flex;align-items:center;gap:4px;flex-shrink:0;font-size:12px;font-weight:600;font-family:inherit;transition:color .15s">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          <span id="sf-badge" class="hide" style="background:var(--g);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px">0</span>
         </button>
       </div>
-      <div id="filter-panel" class="hide" style="background:var(--sur);border-bottom:1px solid var(--bd);padding:10px 14px;display:flex;gap:8px;align-items:center">
-        <svg width="14" height="14" fill="none" stroke="var(--tx3)" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <input type="text" id="loc-filter" placeholder="Filter by city or area..." oninput="loadFeed()" style="flex:1;border:none;background:transparent;font-size:13px;color:var(--tx);font-family:inherit;outline:none">
-        <button onclick="clearLocFilter()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--tx3);font-family:inherit;padding:2px 4px">✕</button>
-      </div>
+      <div id="active-filters" class="hide" style="background:var(--sur);border-bottom:1px solid var(--bd);padding:6px 12px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none"></div>
       <div class="chips" id="chips"></div>
       <div style="padding:10px 12px 0">
         <div class="hero"><div class="hero-deco">⇄</div><div class="hero-tag">switch community</div><div class="hero-title">Swap skills, not cash</div><div class="hero-sub">Find people near you offering what you need</div></div>
@@ -665,6 +669,88 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
       <button onclick="closeOverlay('my-reviews-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
     </div>
     <div id="my-reviews-list" style="padding:14px 16px;overflow-y:auto;padding-bottom:32px"></div>
+  </div>
+</div>
+
+<!-- SORT & FILTER OVERLAY -->
+<div id="sf-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeSortFilter()">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:90dvh;display:flex;flex-direction:column;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">Sort & Filter</div>
+      <button onclick="resetSortFilter()" style="background:none;border:none;font-size:13px;color:var(--g);cursor:pointer;font-family:inherit;font-weight:600">Reset</button>
+    </div>
+    <div style="overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:20px;padding-bottom:32px">
+
+      <!-- SORT -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Sort by</div>
+        <div style="display:flex;flex-direction:column;gap:2px" id="sort-options">
+          <label class="sf-radio"><input type="radio" name="sort" value="newest" checked> <span>🆕 Newest first</span></label>
+          <label class="sf-radio"><input type="radio" name="sort" value="rating"> <span>⭐ Highest rated</span></label>
+          <label class="sf-radio"><input type="radio" name="sort" value="reviews"> <span>💬 Most reviews</span></label>
+          <label class="sf-radio"><input type="radio" name="sort" value="deals"> <span>🤝 Most deals completed</span></label>
+          <label class="sf-radio" id="sort-near-me"><input type="radio" name="sort" value="distance"> <span>📍 Near me</span> <span style="font-size:11px;color:var(--tx3);margin-right:4px">uses your location</span></label>
+        </div>
+      </div>
+
+      <!-- FILTER: LOCATION -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Location</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="flex:1;border:1.5px solid var(--bdm);border-radius:var(--r12);padding:10px 12px;display:flex;gap:8px;align-items:center;transition:border-color .15s" onfocuswithin="this.style.borderColor='var(--g)'" onblurwithin="this.style.borderColor='var(--bdm)'">
+            <svg width="14" height="14" fill="none" stroke="var(--tx3)" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <input type="text" id="sf-city" placeholder="City or area..." style="border:none;background:transparent;font-size:14px;color:var(--tx);font-family:inherit;outline:none;width:100%">
+          </div>
+          <button onclick="detectLocation()" id="gps-btn" style="background:var(--gl);border:none;border-radius:var(--r12);padding:10px 12px;cursor:pointer;color:var(--gd);font-size:13px;font-weight:600;font-family:inherit;white-space:nowrap;flex-shrink:0">📍 Near me</button>
+        </div>
+      </div>
+
+      <!-- FILTER: RATING -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Minimum rating</div>
+        <div style="display:flex;gap:8px">
+          <button class="sf-pill on" data-val="0" onclick="sfPick(this,'rating-pills')">Any</button>
+          <button class="sf-pill" data-val="3" onclick="sfPick(this,'rating-pills')">★ 3+</button>
+          <button class="sf-pill" data-val="4" onclick="sfPick(this,'rating-pills')">★ 4+</button>
+          <button class="sf-pill" data-val="4.5" onclick="sfPick(this,'rating-pills')">★ 4.5+</button>
+        </div>
+      </div>
+
+      <!-- FILTER: REVIEWS -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Minimum reviews</div>
+        <div style="display:flex;gap:8px" id="reviews-pills">
+          <button class="sf-pill on" data-val="0" onclick="sfPick(this,'reviews-pills')">Any</button>
+          <button class="sf-pill" data-val="1" onclick="sfPick(this,'reviews-pills')">1+</button>
+          <button class="sf-pill" data-val="5" onclick="sfPick(this,'reviews-pills')">5+</button>
+          <button class="sf-pill" data-val="10" onclick="sfPick(this,'reviews-pills')">10+</button>
+        </div>
+      </div>
+
+      <!-- FILTER: DEALS -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Experience</div>
+        <div style="display:flex;gap:8px" id="deals-pills">
+          <button class="sf-pill on" data-val="0" onclick="sfPick(this,'deals-pills')">Any</button>
+          <button class="sf-pill" data-val="1" onclick="sfPick(this,'deals-pills')">1+ deals</button>
+          <button class="sf-pill" data-val="5" onclick="sfPick(this,'deals-pills')">5+ deals</button>
+        </div>
+      </div>
+
+      <!-- FILTER: WITH PHOTO -->
+      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx)">Has profile photo</div>
+          <div style="font-size:12px;color:var(--tx3)">Only show users with a photo</div>
+        </div>
+        <input type="checkbox" id="sf-photo" style="width:18px;height:18px;accent-color:var(--g)">
+      </label>
+
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--bd);flex-shrink:0">
+      <button class="btn-g" onclick="applySortFilter()">Show results</button>
+    </div>
   </div>
 </div>
 
@@ -933,6 +1019,97 @@ async function toggleFav(uid, btn) {
   await sb.from('profiles').update({ favorites: updated }).eq('id', ME.id)
 }
 
+// ── SORT & FILTER STATE ──
+let sfState = { sort:'newest', city:'', minRating:0, minReviews:0, minDeals:0, withPhoto:false, userLat:null, userLng:null }
+
+function haversine(lat1,lng1,lat2,lng2) {
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))
+}
+
+function openSortFilter() {
+  // Sync UI to current state
+  document.querySelectorAll('input[name="sort"]').forEach(r => r.checked = r.value === sfState.sort)
+  document.getElementById('sf-city').value = sfState.city
+  document.getElementById('sf-photo').checked = sfState.withPhoto
+  syncSfPills('rating-pills', sfState.minRating)
+  syncSfPills('reviews-pills', sfState.minReviews)
+  syncSfPills('deals-pills', sfState.minDeals)
+  const el = document.getElementById('sf-overlay'); el.style.display='flex'; requestAnimationFrame(()=>el.classList.add('on'))
+}
+function closeSortFilter() { const el=document.getElementById('sf-overlay'); el.classList.remove('on'); setTimeout(()=>el.style.display='none',250) }
+function syncSfPills(groupId, val) {
+  document.querySelectorAll(`#${groupId} .sf-pill`).forEach(b => b.classList.toggle('on', parseFloat(b.dataset.val)===val))
+}
+function sfPick(el, groupId) {
+  document.querySelectorAll(`#${groupId} .sf-pill`).forEach(b=>b.classList.remove('on')); el.classList.add('on')
+}
+function resetSortFilter() {
+  sfState = { sort:'newest', city:'', minRating:0, minReviews:0, minDeals:0, withPhoto:false, userLat:sfState.userLat, userLng:sfState.userLng }
+  document.querySelectorAll('input[name="sort"]').forEach(r=>r.checked=r.value==='newest')
+  document.getElementById('sf-city').value = ''
+  document.getElementById('sf-photo').checked = false
+  syncSfPills('rating-pills',0); syncSfPills('reviews-pills',0); syncSfPills('deals-pills',0)
+}
+function applySortFilter() {
+  sfState.sort = document.querySelector('input[name="sort"]:checked')?.value || 'newest'
+  sfState.city = document.getElementById('sf-city').value.trim()
+  sfState.minRating = parseFloat(document.querySelector('#rating-pills .sf-pill.on')?.dataset.val||0)
+  sfState.minReviews = parseInt(document.querySelector('#reviews-pills .sf-pill.on')?.dataset.val||0)
+  sfState.minDeals = parseInt(document.querySelector('#deals-pills .sf-pill.on')?.dataset.val||0)
+  sfState.withPhoto = document.getElementById('sf-photo').checked
+  if (sfState.sort==='distance' && !sfState.userLat) { toast('Location not available — tap "Near me" first'); return }
+  closeSortFilter()
+  renderActiveFilters()
+  loadFeed()
+}
+
+function renderActiveFilters() {
+  const chips = []
+  const count = [sfState.city, sfState.minRating>0, sfState.minReviews>0, sfState.minDeals>0, sfState.withPhoto, sfState.sort!=='newest'].filter(Boolean).length
+  document.getElementById('sf-badge').textContent = count
+  document.getElementById('sf-badge').classList.toggle('hide', count===0)
+  document.getElementById('sf-btn').style.color = count>0 ? 'var(--g)' : 'var(--tx3)'
+  if (sfState.sort!=='newest') { const labels={rating:'⭐ Highest rated',reviews:'💬 Most reviews',deals:'🤝 Most deals',distance:'📍 Near me'}; chips.push({label:labels[sfState.sort]||sfState.sort,clear:()=>{sfState.sort='newest';document.querySelector('input[name="sort"][value="newest"]').checked=true}}) }
+  if (sfState.city) chips.push({label:'📍 '+sfState.city, clear:()=>{sfState.city='';document.getElementById('sf-city').value=''}})
+  if (sfState.minRating>0) chips.push({label:'★ '+sfState.minRating+'+', clear:()=>{sfState.minRating=0;syncSfPills('rating-pills',0)}})
+  if (sfState.minReviews>0) chips.push({label:sfState.minReviews+'+ reviews', clear:()=>{sfState.minReviews=0;syncSfPills('reviews-pills',0)}})
+  if (sfState.minDeals>0) chips.push({label:sfState.minDeals+'+ deals', clear:()=>{sfState.minDeals=0;syncSfPills('deals-pills',0)}})
+  if (sfState.withPhoto) chips.push({label:'📷 With photo', clear:()=>{sfState.withPhoto=false;document.getElementById('sf-photo').checked=false}})
+  const bar = document.getElementById('active-filters')
+  bar.classList.toggle('hide', chips.length===0)
+  bar.innerHTML = chips.map((c,i)=>`<div class="af-chip">${c.label}<button onclick="clearAfChip(${i})">✕</button></div>`).join('')
+  window._sfClearFns = chips.map(c=>c.clear)
+}
+function clearAfChip(i) { window._sfClearFns[i](); renderActiveFilters(); loadFeed() }
+
+async function detectLocation() {
+  const btn = document.getElementById('gps-btn')
+  btn.textContent = '⏳ Detecting...'
+  btn.disabled = true
+  try {
+    const pos = await new Promise((res,rej) => navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000}))
+    sfState.userLat = pos.coords.latitude
+    sfState.userLng = pos.coords.longitude
+    // Reverse geocode to get city name
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${sfState.userLat}&lon=${sfState.userLng}&format=json&accept-language=en`)
+    const geo = await r.json()
+    const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || ''
+    document.getElementById('sf-city').value = city
+    sfState.city = city
+    // Auto-select "Near me" sort
+    document.querySelector('input[name="sort"][value="distance"]').checked = true
+    sfState.sort = 'distance'
+    // Save lat/lng to profile in background
+    if (ME?.id) sb.from('profiles').update({ lat: sfState.userLat, lng: sfState.userLng, location: city || ME.location }).eq('id', ME.id)
+    btn.textContent = '✅ ' + (city || 'Located')
+  } catch(e) {
+    btn.textContent = '📍 Near me'
+    toast('Could not get your location — please allow location access')
+  } finally { btn.disabled = false }
+}
+
 function toggleChatMenu() {
   const m = document.getElementById('chat-menu')
   m.classList.toggle('hide')
@@ -957,19 +1134,6 @@ async function blockUser() {
   closeChat()
 }
 
-function toggleFilterPanel() {
-  const panel = document.getElementById('filter-panel')
-  const btn   = document.getElementById('filter-btn')
-  panel.classList.toggle('hide')
-  btn.style.color = panel.classList.contains('hide') ? 'var(--tx3)' : 'var(--g)'
-  if (!panel.classList.contains('hide')) document.getElementById('loc-filter').focus()
-}
-function clearLocFilter() {
-  document.getElementById('loc-filter').value = ''
-  document.getElementById('filter-panel').classList.add('hide')
-  document.getElementById('filter-btn').style.color = 'var(--tx3)'
-  loadFeed()
-}
 
 function selObCat(el) {
   document.querySelectorAll('.ob-cat').forEach(b => b.classList.remove('on'))
@@ -1242,22 +1406,35 @@ async function loadFeed() {
   if (!feedEl) return
   feedEl.innerHTML = skelFeed()
   try {
-    const q   = (document.getElementById('si').value || '').trim().toLowerCase()
-    const loc = (document.getElementById('loc-filter')?.value || '').trim().toLowerCase()
+    const q = (document.getElementById('si').value || '').trim().toLowerCase()
     let query = sb.from('profiles').select('*, services(*)')
     if (ME?.id) query = query.neq('id', ME.id)
-    let { data: users } = await withTimeout(query.order('rating', { ascending: false }), 8000)
+    let { data: users } = await withTimeout(query, 8000)
     if (!users) users = []
     let list = users.filter(u => {
       const svcs = u.services || []
+      if (!svcs.length) return false
       const isSaved = (ME?.favorites || []).includes(u.id)
-      const matchCat = activeCat === 'All' || activeCat === 'Saved' ? (activeCat !== 'Saved' || isSaved) : svcs.some(s => s.category === activeCat)
+      const matchCat = activeCat === 'All' || (activeCat === 'Saved' ? isSaved : svcs.some(s => s.category === activeCat))
       const matchQ = !q || u.name.toLowerCase().includes(q) || svcs.some(s => (s.name+' '+(s.description||'')).toLowerCase().includes(q))
-      const matchLoc = !loc || (u.location||'').toLowerCase().includes(loc)
-      return matchCat && matchQ && matchLoc && svcs.length > 0
+      const matchCity = !sfState.city || (u.location||'').toLowerCase().includes(sfState.city.toLowerCase())
+      const matchRating = !sfState.minRating || (u.rating||5) >= sfState.minRating
+      const matchReviews = !sfState.minReviews || (u.reviews_count||0) >= sfState.minReviews
+      const matchDeals = !sfState.minDeals || (u.deals_count||0) >= sfState.minDeals
+      const matchPhoto = !sfState.withPhoto || !!u.avatar_url
+      return matchCat && matchQ && matchCity && matchRating && matchReviews && matchDeals && matchPhoto
     })
+    // Sort
+    if (sfState.sort === 'rating') list.sort((a,b) => (b.rating||5)-(a.rating||5))
+    else if (sfState.sort === 'reviews') list.sort((a,b) => (b.reviews_count||0)-(a.reviews_count||0))
+    else if (sfState.sort === 'deals') list.sort((a,b) => (b.deals_count||0)-(a.deals_count||0))
+    else if (sfState.sort === 'distance' && sfState.userLat) {
+      list.forEach(u => { u._dist = u.lat&&u.lng ? haversine(sfState.userLat,sfState.userLng,u.lat,u.lng) : 9999 })
+      list.sort((a,b) => a._dist - b._dist)
+    }
+    else list.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0))
     if (!list.length) {
-      const isFiltered = (document.getElementById('si').value||'').trim() || activeCat !== 'All' || (document.getElementById('loc-filter')?.value||'').trim()
+      const isFiltered = q || activeCat !== 'All' || sfState.city || sfState.minRating || sfState.minReviews || sfState.minDeals || sfState.withPhoto
       feedEl.innerHTML = isFiltered
         ? `<div class="empty">No skills found for this search</div>`
         : `<div style="padding:40px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px">
@@ -1292,6 +1469,7 @@ async function loadFeed() {
           <div class="card-foot">
             <div class="cpill">${first.category}</div>
             <div class="cstar">★ ${u.rating||5}</div>
+            ${sfState.sort==='distance'&&u._dist<9999?`<div style="font-size:11px;color:var(--tx3)">📍 ${u._dist<1?'<1':Math.round(u._dist)} km</div>`:''}
             <div style="font-size:11px;color:var(--tx3)">${u.deals_count||0} deals</div>
           </div>
         </div>
