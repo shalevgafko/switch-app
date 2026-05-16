@@ -624,6 +624,70 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
   </div>
 </div>
 
+<!-- PRIVACY POLICY OVERLAY -->
+<div id="privacy-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('privacy-overlay')">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:88dvh;display:flex;flex-direction:column;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">Privacy Policy</div>
+      <button onclick="closeOverlay('privacy-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div style="padding:16px 16px 40px;overflow-y:auto;font-size:13px;color:var(--tx2);line-height:1.7">
+      <p style="font-size:11px;color:var(--tx3);margin-bottom:16px">Last updated: May 2026</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">What we collect</p>
+      <p style="margin-bottom:14px">When you sign up, we collect your email address and the profile information you choose to share (name, location, bio, skills). We also collect messages you send through the platform and details of any skill-swap deals you create.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">How we use it</p>
+      <p style="margin-bottom:14px">Your data is used solely to operate switch — to show your profile to other users, enable messaging, and facilitate skill swaps. We send you a welcome email when you join and may send important service updates. We never sell your data to third parties.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Analytics</p>
+      <p style="margin-bottom:14px">We use PostHog to understand how the app is used (which features are popular, where users drop off). This data is aggregated and does not include message content or deal details.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Data storage</p>
+      <p style="margin-bottom:14px">All data is stored on Supabase (hosted in the EU). We use industry-standard security practices including row-level security policies on all database tables.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Your rights</p>
+      <p style="margin-bottom:14px">You can delete your account and all associated data at any time by contacting us. You can edit your profile information directly in the app.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Contact</p>
+      <p>Questions? Email us at shalevgafko@gmail.com</p>
+    </div>
+  </div>
+</div>
+
+<!-- TERMS OF SERVICE OVERLAY -->
+<div id="terms-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('terms-overlay')">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:88dvh;display:flex;flex-direction:column;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <div class="handle"></div>
+    <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div style="font-size:16px;font-weight:700;font-family:'Inter',sans-serif">Terms of Service</div>
+      <button onclick="closeOverlay('terms-overlay')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div style="padding:16px 16px 40px;overflow-y:auto;font-size:13px;color:var(--tx2);line-height:1.7">
+      <p style="font-size:11px;color:var(--tx3);margin-bottom:16px">Last updated: May 2026</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">What switch is</p>
+      <p style="margin-bottom:14px">switch is a platform for peer-to-peer skill swaps. Users offer services and exchange them with other users — no money changes hands on the platform. switch is a facilitator only; we are not a party to any deal between users.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Your responsibilities</p>
+      <p style="margin-bottom:14px">You are responsible for the accuracy of your profile and the services you offer. You agree to complete deals you commit to. You must not use switch for anything illegal, harmful, or deceptive.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Content</p>
+      <p style="margin-bottom:14px">You own the content you post. By posting, you grant switch a licence to display it to other users. We reserve the right to remove content that violates these terms or our community guidelines.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Deals between users</p>
+      <p style="margin-bottom:14px">switch is not responsible for the outcome of deals between users. If a deal goes wrong, we provide a dispute-reporting system, but we cannot guarantee resolution. Use good judgement before committing to a swap.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Account termination</p>
+      <p style="margin-bottom:14px">We reserve the right to suspend or terminate accounts that repeatedly violate these terms. You can close your account at any time by contacting us.</p>
+
+      <p style="font-weight:700;color:var(--tx);margin-bottom:4px">Changes</p>
+      <p>We may update these terms. Continued use of the app after changes constitutes acceptance.</p>
+    </div>
+  </div>
+</div>
+
 <!-- CREATE COMMUNITY OVERLAY -->
 <div id="create-comm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeOverlay('create-comm-overlay')">
   <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:88dvh;overflow-y:auto;padding:0 0 32px;animation:sup .25s cubic-bezier(.32,.72,0,1)">
@@ -1905,6 +1969,11 @@ async function loadProf() {
       <div class="promo pro" onclick="toast('Pro — coming soon!')"><div class="promo-ico">👑</div><div><div class="promo-title">Upgrade to Pro</div><div class="promo-sub">Stats, unlimited chat, Pro badge</div></div></div>
       <div class="promo boost" onclick="toast('Boost — coming soon!')"><div class="promo-ico">🚀</div><div><div class="promo-title">Boost your offer</div><div class="promo-sub">Promote your skill to the top of the feed</div></div></div>
       <div class="promo b2b" onclick="toast('B2B — coming soon!')"><div class="promo-ico">🏢</div><div><div class="promo-title">B2B</div><div class="promo-sub">switch for companies &amp; communities</div></div></div>
+    </div>
+    <div class="sc" style="padding-bottom:8px">
+      <div class="sc-lbl">Legal</div>
+      <button onclick="openOverlay('privacy-overlay')" style="width:100%;background:none;border:none;padding:11px 0;font-size:14px;color:var(--tx2);cursor:pointer;text-align:right;font-family:inherit;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">Privacy Policy <span style="color:var(--tx3)">›</span></button>
+      <button onclick="openOverlay('terms-overlay')" style="width:100%;background:none;border:none;padding:11px 0;font-size:14px;color:var(--tx2);cursor:pointer;text-align:right;font-family:inherit;display:flex;justify-content:space-between;align-items:center">Terms of Service <span style="color:var(--tx3)">›</span></button>
     </div>`
 }
 
