@@ -387,6 +387,14 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
     <div id="ob-step1">
       <div class="ob-title">Hey, who are you? 👋</div>
       <div class="ob-sub">A few basics so people know who you are</div>
+      <div class="ob-fg" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <label id="ob-av-label" style="width:90px;height:90px;border-radius:50%;background:var(--gl);border:3px dashed var(--g);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;flex-shrink:0;transition:border-style .2s">
+          <span id="ob-av-icon" style="font-size:28px">📷</span>
+          <span id="ob-av-hint-txt" style="font-size:10px;color:var(--gd);font-weight:600;margin-top:2px">Add photo</span>
+          <input type="file" accept="image/*" style="display:none" onchange="obUploadAvatar(event)" id="ob-av-input">
+        </label>
+        <div style="font-size:12px;color:#c00;font-weight:600" id="ob-av-err" class="hide">Profile photo is required</div>
+      </div>
       <div class="ob-fg"><label>Full Name</label><input type="text" id="ob-name" placeholder="Alex Johnson"></div>
       <div class="ob-fg"><label>Where are you?</label><input type="text" id="ob-loc" placeholder="New York, NY"></div>
       <div class="ob-fg"><label>About you</label><textarea id="ob-bio" placeholder="What do you love doing? What makes you unique?"></textarea></div>
@@ -404,6 +412,14 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
       </div>
       <div class="ob-fg"><label>Skill Name</label><input type="text" id="ob-sname" placeholder="e.g. Guitar lessons, Logo design..."></div>
       <div class="ob-fg"><label>Short Description</label><input type="text" id="ob-sdesc" placeholder="What's included? What level?"></div>
+      <div class="ob-fg">
+        <label>Photo or Video <span style="color:#c00">*</span></label>
+        <label id="ob-media-label" style="display:flex;align-items:center;gap:12px;border:2px dashed var(--bdm);border-radius:var(--r12);padding:14px;cursor:pointer;transition:border-color .15s">
+          <span id="ob-media-preview" style="width:56px;height:56px;border-radius:var(--r8);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;overflow:hidden">🖼️</span>
+          <div><div style="font-size:13px;font-weight:600;color:var(--tx)">Add a photo or video</div><div style="font-size:12px;color:var(--tx3);margin-top:2px">Shows in the feed — required</div></div>
+          <input type="file" accept="image/*,video/*" style="display:none" onchange="obUploadMedia(event)" id="ob-media-input">
+        </label>
+      </div>
       <div class="ob-fg">
         <label>Category</label>
         <div class="ob-cats" id="ob-cats">
@@ -1135,6 +1151,61 @@ async function blockUser() {
 }
 
 
+let obAvatarUrl = null
+let obMediaUrl = null
+let obMediaType = null
+let profMediaUrl = null
+let profMediaType = null
+
+async function obUploadAvatar(e) {
+  const file = e.target.files[0]; if (!file) return
+  const label = document.getElementById('ob-av-label')
+  label.innerHTML = '<div style="font-size:12px;color:var(--gd)">Uploading...</div><input type="file" accept="image/*" style="display:none" onchange="obUploadAvatar(event)" id="ob-av-input">'
+  const path = `${ME.id}/avatar.${file.name.split('.').pop()}`
+  const { error } = await sb.storage.from('avatars').upload(path, file, { upsert: true })
+  if (error) { toast('Upload failed'); return }
+  const { data: { publicUrl } } = sb.storage.from('avatars').getPublicUrl(path)
+  obAvatarUrl = publicUrl
+  label.innerHTML = `<img src="${publicUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><input type="file" accept="image/*" style="display:none" onchange="obUploadAvatar(event)" id="ob-av-input">`
+  label.style.border = '3px solid var(--g)'
+  document.getElementById('ob-av-err')?.classList.add('hide')
+}
+
+async function obUploadMedia(e) {
+  const file = e.target.files[0]; if (!file) return
+  const isVideo = file.type.startsWith('video/')
+  const preview = document.getElementById('ob-media-preview')
+  preview.innerHTML = '⏳'
+  const ext = file.name.split('.').pop()
+  const path = `${ME.id}/onboarding-service-${Date.now()}.${ext}`
+  const bucket = isVideo ? 'service-photos' : 'service-photos'
+  const { error } = await sb.storage.from(bucket).upload(path, file, { upsert: true })
+  if (error) { toast('Upload failed'); preview.innerHTML = '🖼️'; return }
+  const { data: { publicUrl } } = sb.storage.from(bucket).getPublicUrl(path)
+  obMediaUrl = publicUrl; obMediaType = isVideo ? 'video' : 'image'
+  preview.innerHTML = isVideo ? '🎬' : `<img src="${publicUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`
+  document.getElementById('ob-media-label').style.borderColor = 'var(--g)'
+  document.getElementById('ob-media-label').style.borderStyle = 'solid'
+}
+
+async function profUploadMedia(e) {
+  const file = e.target.files[0]; if (!file) return
+  const isVideo = file.type.startsWith('video/')
+  const preview = document.getElementById('s-media-preview')
+  const nameEl = document.getElementById('s-media-name')
+  preview.innerHTML = '⏳'; nameEl.textContent = 'Uploading...'
+  const ext = file.name.split('.').pop()
+  const path = `${ME.id}/service-${Date.now()}.${ext}`
+  const { error } = await sb.storage.from('service-photos').upload(path, file, { upsert: true })
+  if (error) { toast('Upload failed'); preview.innerHTML = '🖼️'; nameEl.textContent = 'Add photo or video'; return }
+  const { data: { publicUrl } } = sb.storage.from('service-photos').getPublicUrl(path)
+  profMediaUrl = publicUrl; profMediaType = isVideo ? 'video' : 'image'
+  preview.innerHTML = isVideo ? '🎬' : `<img src="${publicUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`
+  nameEl.textContent = isVideo ? 'Video added ✓' : 'Photo added ✓'
+  document.getElementById('s-media-label').style.borderColor = 'var(--g)'
+  document.getElementById('s-media-label').style.borderStyle = 'solid'
+}
+
 function selObCat(el) {
   document.querySelectorAll('.ob-cat').forEach(b => b.classList.remove('on'))
   el.classList.add('on')
@@ -1145,6 +1216,7 @@ function obNext1() {
   const loc  = document.getElementById('ob-loc').value.trim()
   if (!name) { toast('Please enter your name'); return }
   if (!loc)  { toast('Please enter your location'); return }
+  if (!obAvatarUrl) { document.getElementById('ob-av-err').classList.remove('hide'); document.getElementById('ob-av-label').scrollIntoView({behavior:'smooth'}); return }
   document.getElementById('ob-step1').classList.add('hide')
   document.getElementById('ob-step2').classList.remove('hide')
   document.getElementById('ob-d1').classList.remove('on')
@@ -1163,9 +1235,15 @@ async function obFinish() {
     const scat  = document.querySelector('.ob-cat.on')?.dataset.cat || 'Technology'
 
     const initials = name.split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase()
-    await sb.from('profiles').update({ name, location: loc, bio, avatar_initials: initials, onboarded: true }).eq('id', ME.id)
+    const profileUpdate = { name, location: loc, bio, avatar_initials: initials, onboarded: true }
+    if (obAvatarUrl) profileUpdate.avatar_url = obAvatarUrl
+    await sb.from('profiles').update(profileUpdate).eq('id', ME.id)
     if (sname) {
-      await sb.from('services').insert({ user_id: ME.id, name: sname, description: sdesc, category: scat })
+      if (!obMediaUrl) { toast('Please add a photo or video for your skill'); document.getElementById('ob-media-label').scrollIntoView({behavior:'smooth'}); return }
+      const serviceData = { user_id: ME.id, name: sname, description: sdesc, category: scat }
+      if (obMediaType === 'video') serviceData.video_url = obMediaUrl
+      else serviceData.photos = [obMediaUrl]
+      await sb.from('services').insert(serviceData)
     }
     const { data: updated } = await sb.from('profiles').select('*, services(*)').eq('id', ME.id).single()
     ME = updated
@@ -1411,28 +1489,28 @@ async function loadFeed() {
     if (ME?.id) query = query.neq('id', ME.id)
     let { data: users } = await withTimeout(query, 8000)
     if (!users) users = []
-    let list = users.filter(u => {
-      const svcs = u.services || []
-      if (!svcs.length) return false
+    // Build flat list: one entry per service
+    let cards = []
+    users.forEach(u => {
       const isSaved = (ME?.favorites || []).includes(u.id)
-      const matchCat = activeCat === 'All' || (activeCat === 'Saved' ? isSaved : svcs.some(s => s.category === activeCat))
-      const matchQ = !q || u.name.toLowerCase().includes(q) || svcs.some(s => (s.name+' '+(s.description||'')).toLowerCase().includes(q))
-      const matchCity = !sfState.city || (u.location||'').toLowerCase().includes(sfState.city.toLowerCase())
-      const matchRating = !sfState.minRating || (u.rating||5) >= sfState.minRating
-      const matchReviews = !sfState.minReviews || (u.reviews_count||0) >= sfState.minReviews
-      const matchDeals = !sfState.minDeals || (u.deals_count||0) >= sfState.minDeals
-      const matchPhoto = !sfState.withPhoto || !!u.avatar_url
-      return matchCat && matchQ && matchCity && matchRating && matchReviews && matchDeals && matchPhoto
+      if (sfState.city && !(u.location||'').toLowerCase().includes(sfState.city.toLowerCase())) return
+      if (sfState.minRating && (u.rating||5) < sfState.minRating) return
+      if (sfState.minReviews && (u.reviews_count||0) < sfState.minReviews) return
+      if (sfState.minDeals && (u.deals_count||0) < sfState.minDeals) return
+      if (sfState.withPhoto && !u.avatar_url) return
+      ;(u.services || []).forEach(svc => {
+        const matchCat = activeCat === 'All' || (activeCat === 'Saved' ? isSaved : svc.category === activeCat)
+        const matchQ = !q || u.name.toLowerCase().includes(q) || (svc.name+' '+(svc.description||'')).toLowerCase().includes(q)
+        if (matchCat && matchQ) cards.push({ u, svc, isSaved, _dist: u.lat&&u.lng&&sfState.userLat ? haversine(sfState.userLat,sfState.userLng,u.lat,u.lng) : 9999 })
+      })
     })
     // Sort
-    if (sfState.sort === 'rating') list.sort((a,b) => (b.rating||5)-(a.rating||5))
-    else if (sfState.sort === 'reviews') list.sort((a,b) => (b.reviews_count||0)-(a.reviews_count||0))
-    else if (sfState.sort === 'deals') list.sort((a,b) => (b.deals_count||0)-(a.deals_count||0))
-    else if (sfState.sort === 'distance' && sfState.userLat) {
-      list.forEach(u => { u._dist = u.lat&&u.lng ? haversine(sfState.userLat,sfState.userLng,u.lat,u.lng) : 9999 })
-      list.sort((a,b) => a._dist - b._dist)
-    }
-    else list.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0))
+    if (sfState.sort === 'rating') cards.sort((a,b) => (b.u.rating||5)-(a.u.rating||5))
+    else if (sfState.sort === 'reviews') cards.sort((a,b) => (b.u.reviews_count||0)-(a.u.reviews_count||0))
+    else if (sfState.sort === 'deals') cards.sort((a,b) => (b.u.deals_count||0)-(a.u.deals_count||0))
+    else if (sfState.sort === 'distance') cards.sort((a,b) => a._dist - b._dist)
+    else cards.sort((a,b) => new Date(b.svc.created_at||0) - new Date(a.svc.created_at||0))
+    const list = cards
     if (!list.length) {
       const isFiltered = q || activeCat !== 'All' || sfState.city || sfState.minRating || sfState.minReviews || sfState.minDeals || sfState.withPhoto
       feedEl.innerHTML = isFiltered
@@ -1445,31 +1523,31 @@ async function loadFeed() {
            </div>`
       return
     }
-    feedEl.innerHTML = list.map(u => {
-      const svcs = u.services || []
-      const first = svcs[0]; if (!first) return ''
-      const emoji   = EMOJIS[first.category] || '✨'
-      const bg      = BGS[first.category]    || '#F0F0EC'
-      const photos  = first.photos || []
-      const imgInner = photos.length
-        ? `<img src="${photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
-        : `<span style="font-size:36px">${emoji}</span>`
+    feedEl.innerHTML = list.map(({ u, svc, isSaved, _dist }) => {
+      const emoji = EMOJIS[svc.category] || '✨'
+      const bg    = BGS[svc.category]    || '#F0F0EC'
+      const photos = svc.photos || []
+      const hasVideo = !!svc.video_url
+      const imgInner = hasVideo
+        ? `<video src="${svc.video_url}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" muted playsinline loop autoplay>`
+        : photos.length
+          ? `<img src="${photos[0]}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
+          : `<span style="font-size:36px">${emoji}</span>`
       const avInner = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials || u.name.substring(0,2))
-      const isFav = (ME?.favorites || []).includes(u.id)
-      return `<div class="ocard" onclick="openProf('${u.id}')">
+      return `<div class="ocard" onclick="openProf('${u.id}','${svc.id}')">
         <div class="card-left" style="background:${bg}">${imgInner}</div>
         <div class="card-right">
           <div class="card-user-row">
             <div class="av" style="width:26px;height:26px;font-size:10px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avInner}</div>
             <div style="flex:1;min-width:0"><div class="card-uname">${u.name}</div><div class="card-loc">${u.location||''}</div></div>
-            <button onclick="event.stopPropagation();toggleFav('${u.id}',this)" style="background:none;border:none;cursor:pointer;font-size:18px;padding:2px 4px;flex-shrink:0;line-height:1">${isFav?'❤️':'🤍'}</button>
+            <button onclick="event.stopPropagation();toggleFav('${u.id}',this)" style="background:none;border:none;cursor:pointer;font-size:18px;padding:2px 4px;flex-shrink:0;line-height:1">${isSaved?'❤️':'🤍'}</button>
           </div>
-          <div class="card-title">${first.name}${svcs.length>1?`<span style="font-size:11px;color:var(--tx3);font-weight:400;margin-right:4px">+${svcs.length-1}</span>`:''}</div>
-          <div class="card-desc">${first.description||''}</div>
+          <div class="card-title">${svc.name}</div>
+          <div class="card-desc">${svc.description||''}</div>
           <div class="card-foot">
-            <div class="cpill">${first.category}</div>
+            <div class="cpill">${svc.category}</div>
             <div class="cstar">★ ${u.rating||5}</div>
-            ${sfState.sort==='distance'&&u._dist<9999?`<div style="font-size:11px;color:var(--tx3)">📍 ${u._dist<1?'<1':Math.round(u._dist)} km</div>`:''}
+            ${sfState.sort==='distance'&&_dist<9999?`<div style="font-size:11px;color:var(--tx3)">📍 ${_dist<1?'<1':Math.round(_dist)} km</div>`:''}
             <div style="font-size:11px;color:var(--tx3)">${u.deals_count||0} deals</div>
           </div>
         </div>
@@ -1481,19 +1559,23 @@ async function loadFeed() {
 }
 
 // ── PROFILE SHEET (other users) ──
-async function openProf(id) {
+async function openProf(id, focusSvcId) {
   if (!ME) return
   viewUserId = id
   const { data: u }       = await sb.from('profiles').select('*, services(*)').eq('id', id).single()
   const { data: reviews } = await sb.from('reviews').select('*, reviewer:profiles!reviews_reviewer_id_fkey(name)').eq('reviewed_id', id).order('created_at',{ascending:false}).limit(5)
   if (!u) return
   const svcs = u.services || []
+  const focusSvc = focusSvcId ? svcs.find(s => s.id === focusSvcId) : null
+  const coverSvc = focusSvc || svcs[0]
   const allPhotos = svcs.flatMap(s => s.photos || [])
-  const emoji = EMOJIS[svcs[0]?.category] || '✨'
-  const bg    = BGS[svcs[0]?.category]    || '#F0F0EC'
-  document.getElementById('pcover-el').innerHTML = allPhotos.length
-    ? `<img class="pcover" src="${allPhotos[0]}">`
-    : `<div class="pcover-ph" style="background:${bg}">${emoji}</div>`
+  const emoji = EMOJIS[coverSvc?.category] || '✨'
+  const bg    = BGS[coverSvc?.category]    || '#F0F0EC'
+  document.getElementById('pcover-el').innerHTML = coverSvc?.video_url
+    ? `<video class="pcover" src="${coverSvc.video_url}" muted playsinline loop autoplay style="width:100%;height:155px;object-fit:cover;display:block">`
+    : (focusSvc?.photos?.[0] || allPhotos[0])
+      ? `<img class="pcover" src="${focusSvc?.photos?.[0] || allPhotos[0]}">`
+      : `<div class="pcover-ph" style="background:${bg}">${emoji}</div>`
   const avEl = document.getElementById('pav-el')
   avEl.style.cssText = `width:56px;height:56px;font-size:19px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'};border:3px solid var(--sur);border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'Inter',sans-serif;font-weight:700`
   avEl.innerHTML = u.avatar_url ? `<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover">` : (u.avatar_initials||u.name.substring(0,2))
@@ -1503,8 +1585,11 @@ async function openProf(id) {
   document.getElementById('prate-el').textContent = `★ ${u.rating||5} · ${u.deals_count||0} deals`
   document.getElementById('pbio-el').textContent  = u.bio || ''
   document.getElementById('pservs-el').innerHTML  = svcs.map(s => {
-    const ph = (s.photos||[]).length ? (s.photos||[]).map(p=>`<img class="sphot" src="${p}">`).join('') : '<div class="sphot-ph">📷</div>'
-    return `<div class="sitem"><div class="siname">${s.name}</div><div class="sidesc">${s.description||''}</div><div class="sphots">${ph}</div></div>`
+    const media = s.video_url
+      ? `<video src="${s.video_url}" style="width:70px;height:70px;border-radius:var(--r8);object-fit:cover;flex-shrink:0" muted playsinline loop autoplay>`
+      : (s.photos||[]).length ? (s.photos||[]).map(p=>`<img class="sphot" src="${p}">`).join('') : '<div class="sphot-ph">📷</div>'
+    const hl = focusSvcId && s.id === focusSvcId ? 'border:2px solid var(--g);' : ''
+    return `<div class="sitem" id="svc-${s.id}" style="${hl}"><div class="siname">${s.name}</div><div class="sidesc">${s.description||''}</div><div class="sphots">${media}</div></div>`
   }).join('')
   document.getElementById('prevs-el').innerHTML = (reviews||[]).length
     ? `<div class="slbl" style="margin-top:14px">Reviews</div>${(reviews||[]).map(r=>`<div class="rv-item"><div class="rv-head"><div class="rv-name">${r.reviewer?.name||'User'}</div><div class="rv-stars">${'★'.repeat(r.stars)}</div></div><div class="rv-text">${r.text||''}</div></div>`).join('')}` : ''
@@ -1522,6 +1607,10 @@ async function openProf(id) {
     btn.onclick = () => sendReq(id, u.name)
   }
   document.getElementById('overlay').classList.add('on')
+  if (focusSvcId) setTimeout(() => {
+    const el = document.getElementById('svc-' + focusSvcId)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, 350)
 }
 function closeOv() { document.getElementById('overlay').classList.remove('on') }
 
@@ -2305,6 +2394,11 @@ async function loadProf() {
         <select id="s-cat" style="border:1px solid var(--bdm);border-radius:var(--r8);padding:9px 12px;font-size:13px;background:var(--bg);font-family:inherit;outline:none;width:100%">
           <option>Health</option><option>Arts</option><option>Food</option><option>Music</option><option>Design</option><option>Languages</option><option>Sports</option><option>Technology</option><option>Childcare</option><option>Home</option><option>Beauty</option><option>Photography</option><option>Writing</option><option>Events</option><option>Education</option><option>Pets</option><option>Other</option>
         </select>
+        <label id="s-media-label" style="display:flex;align-items:center;gap:10px;border:1.5px dashed var(--bdm);border-radius:var(--r8);padding:10px 12px;cursor:pointer;transition:border-color .15s">
+          <span id="s-media-preview" style="width:44px;height:44px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden">🖼️</span>
+          <div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--tx)" id="s-media-name">Add photo or video</div><div style="font-size:11px;color:var(--tx3)">Required — shows in the feed</div></div>
+          <input type="file" accept="image/*,video/*" style="display:none" onchange="profUploadMedia(event)" id="s-media-input">
+        </label>
         <button class="btn-g" onclick="addServ()">+ Add skill</button>
       </div>
     </div>
@@ -2430,9 +2524,18 @@ async function addServ() {
   const desc = descEl.value.trim()
   const cat  = catEl.value
   if (!name) { toast('Enter a skill name'); return }
-  const { error } = await sb.from('services').insert({ user_id: ME.id, name, description: desc, category: cat })
+  if (!profMediaUrl) { toast('Please add a photo or video for this skill'); return }
+  const serviceData = { user_id: ME.id, name, description: desc, category: cat }
+  if (profMediaType === 'video') serviceData.video_url = profMediaUrl
+  else serviceData.photos = [profMediaUrl]
+  const { error } = await sb.from('services').insert(serviceData)
   if (error) { toast('Error: ' + error.message); return }
   nameEl.value = ''; descEl.value = ''
+  profMediaUrl = null; profMediaType = null
+  document.getElementById('s-media-preview').innerHTML = '🖼️'
+  document.getElementById('s-media-name').textContent = 'Add photo or video'
+  document.getElementById('s-media-label').style.borderColor = ''
+  document.getElementById('s-media-label').style.borderStyle = ''
   toast('Skill added! ✓'); loadProf()
 }
 
