@@ -590,31 +590,39 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 </div>
 
 <!-- SERVICE DETAIL OVERLAY -->
-<div class="overlay" id="svc-detail-overlay" onclick="if(event.target===this)closeSvcDetail()">
-  <div class="psheet" style="max-height:88dvh">
-    <div class="handle"></div>
-    <div id="svc-detail-gallery" style="display:flex;gap:10px;overflow-x:auto;padding:14px 16px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
-    <div style="padding:14px 16px 32px">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px">
-        <div id="svc-detail-emoji" style="font-size:26px;flex-shrink:0;margin-top:3px"></div>
-        <div>
+<div id="svc-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:160;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeSvcDetail()">
+  <div style="background:var(--sur);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:430px;max-height:92dvh;overflow-y:auto;animation:sup .25s cubic-bezier(.32,.72,0,1)">
+    <!-- Gallery with arrows -->
+    <div style="position:relative;height:240px;background:#111;overflow:hidden;border-radius:var(--r20) var(--r20) 0 0">
+      <div id="svc-detail-img" style="width:100%;height:100%"></div>
+      <button onclick="closeSvcDetail()" style="position:absolute;top:13px;right:13px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);border:none;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2">✕</button>
+      <button id="svc-gal-prev" onclick="svcGalNav(-1)" style="display:none;position:absolute;left:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.42);backdrop-filter:blur(4px);border:none;color:#fff;font-size:24px;cursor:pointer;align-items:center;justify-content:center;line-height:1">‹</button>
+      <button id="svc-gal-next" onclick="svcGalNav(1)" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.42);backdrop-filter:blur(4px);border:none;color:#fff;font-size:24px;cursor:pointer;align-items:center;justify-content:center;line-height:1">›</button>
+      <div id="svc-gal-dots" style="position:absolute;bottom:11px;left:50%;transform:translateX(-50%);display:flex;gap:5px;pointer-events:none"></div>
+    </div>
+    <!-- Info -->
+    <div style="padding:16px 16px 36px">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+        <div id="svc-detail-emoji" style="font-size:22px;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
           <div id="svc-detail-name" style="font-size:18px;font-weight:700;color:var(--tx);font-family:'Inter',sans-serif;line-height:1.2"></div>
-          <div id="svc-detail-cat" class="cpill" style="display:inline-block;margin-top:5px"></div>
+          <div id="svc-detail-cat" class="cpill" style="display:inline-block;margin-top:4px"></div>
         </div>
       </div>
-      <div id="svc-detail-desc" style="font-size:14px;color:var(--tx2);line-height:1.65;margin-bottom:10px"></div>
-      <div id="svc-detail-fulldesc-wrap" class="hide" style="background:var(--bg);border-radius:var(--r12);padding:13px 14px;margin-bottom:14px">
+      <div id="svc-detail-desc" style="font-size:14px;color:var(--tx2);line-height:1.65;margin-bottom:12px"></div>
+      <div id="svc-detail-provider" style="display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--bg);border-radius:var(--r12);margin-bottom:12px"></div>
+      <div id="svc-detail-fulldesc-wrap" class="hide" style="background:var(--bg);border-radius:var(--r12);padding:13px 14px">
         <div style="font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">About this skill</div>
         <div id="svc-detail-fulldesc" style="font-size:14px;color:var(--tx2);line-height:1.8;white-space:pre-wrap"></div>
       </div>
-      <button class="btn-sec" onclick="closeSvcDetail()" style="width:100%;margin-top:4px">Close</button>
     </div>
   </div>
 </div>
 
 <!-- PROFILE OVERLAY (other users) -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeOv()">
-  <div class="psheet">
+  <div class="psheet" style="position:relative">
+    <button onclick="closeOv()" style="position:absolute;top:13px;right:13px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.18);border:none;color:var(--tx2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;line-height:1">✕</button>
     <div class="handle"></div>
     <div id="pcover-el"></div>
     <div class="pinfo">
@@ -1178,28 +1186,54 @@ async function blockUser() {
 
 const svcRegistry = {}
 let ovSelectedExtras = new Set()
+let ovCurrentUser = null
+let svcGalItems = [], svcGalIdx = 0
 
 function openSvcDetail(svcId) {
   const s = svcRegistry[svcId]; if (!s) return
-  const gallery = document.getElementById('svc-detail-gallery')
-  const items = []
-  if (s.video_url) items.push(`<video src="${s.video_url}" style="height:220px;min-width:260px;max-width:85vw;border-radius:var(--r12);object-fit:cover;flex-shrink:0" controls playsinline>`)
-  ;(s.photos||[]).forEach(p => items.push(`<img src="${p}" style="height:220px;min-width:200px;max-width:85vw;border-radius:var(--r12);object-fit:cover;flex-shrink:0">`))
-  if (!items.length) {
-    const em = EMOJIS[s.category]||'✨'; const bg = BGS[s.category]||'#F0F0EC'
-    items.push(`<div style="height:160px;min-width:280px;max-width:85vw;border-radius:var(--r12);background:${bg};display:flex;align-items:center;justify-content:center;font-size:52px;flex-shrink:0">${em}</div>`)
-  }
-  gallery.innerHTML = items.join('')
+  // Build gallery items
+  svcGalItems = []
+  if (s.video_url) svcGalItems.push({ type:'video', src:s.video_url })
+  ;(s.photos||[]).forEach(p => svcGalItems.push({ type:'img', src:p }))
+  if (!svcGalItems.length) svcGalItems.push({ type:'ph', bg:BGS[s.category]||'#F0F0EC', em:EMOJIS[s.category]||'✨' })
+  svcGalIdx = 0
+  renderSvcGal()
+  // Text fields
   document.getElementById('svc-detail-emoji').textContent = EMOJIS[s.category]||'✨'
   document.getElementById('svc-detail-name').textContent  = s.name
   document.getElementById('svc-detail-cat').textContent   = s.category
   document.getElementById('svc-detail-desc').textContent  = s.description||''
+  // Provider row
+  const u = ovCurrentUser
+  const provEl = document.getElementById('svc-detail-provider')
+  if (u) {
+    const avInner = u.avatar_url ? `<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (u.avatar_initials||u.name.substring(0,2))
+    provEl.innerHTML = `<div class="av" style="width:38px;height:38px;font-size:12px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'};flex-shrink:0">${avInner}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--tx)">${u.name}</div><div style="font-size:12px;color:var(--tx2);margin-top:1px">★ ${u.rating||5} · ${u.deals_count||0} deals${u.location?' · 📍 '+u.location:''}</div></div>`
+    provEl.classList.remove('hide')
+  } else provEl.classList.add('hide')
+  // Full description
   const wrap = document.getElementById('svc-detail-fulldesc-wrap')
   if (s.full_description) { document.getElementById('svc-detail-fulldesc').textContent = s.full_description; wrap.classList.remove('hide') }
   else wrap.classList.add('hide')
-  document.getElementById('svc-detail-overlay').classList.add('on')
+  document.getElementById('svc-detail-overlay').style.display = 'flex'
 }
-function closeSvcDetail() { document.getElementById('svc-detail-overlay').classList.remove('on') }
+function closeSvcDetail() { document.getElementById('svc-detail-overlay').style.display = 'none' }
+
+function renderSvcGal() {
+  const item = svcGalItems[svcGalIdx]
+  const imgEl = document.getElementById('svc-detail-img')
+  if (item.type === 'video') imgEl.innerHTML = `<video src="${item.src}" style="width:100%;height:100%;object-fit:cover" controls playsinline>`
+  else if (item.type === 'img') imgEl.innerHTML = `<img src="${item.src}" style="width:100%;height:100%;object-fit:cover">`
+  else imgEl.innerHTML = `<div style="width:100%;height:100%;background:${item.bg};display:flex;align-items:center;justify-content:center;font-size:52px">${item.em}</div>`
+  const multi = svcGalItems.length > 1
+  const prev = document.getElementById('svc-gal-prev'), next = document.getElementById('svc-gal-next')
+  prev.style.display = multi ? 'flex' : 'none'
+  next.style.display = multi ? 'flex' : 'none'
+  document.getElementById('svc-gal-dots').innerHTML = multi
+    ? svcGalItems.map((_,i)=>`<div style="width:6px;height:6px;border-radius:50%;background:${i===svcGalIdx?'#fff':'rgba(255,255,255,.45)'};transition:all .2s"></div>`).join('') : ''
+}
+function svcGalNav(dir) { svcGalIdx=(svcGalIdx+dir+svcGalItems.length)%svcGalItems.length; renderSvcGal() }
 
 function toggleSvcSelect(svcId, btn) {
   event.stopPropagation()
@@ -1631,6 +1665,7 @@ async function openProf(id, focusSvcId) {
   ])
   if (!u) return
   const req  = existing || incoming
+  ovCurrentUser = u
   const svcs = u.services || []
   const focusSvc  = focusSvcId ? svcs.find(s => s.id === focusSvcId) : null
   const coverSvc  = focusSvc || svcs[0]
