@@ -169,6 +169,13 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 .citem{background:var(--sur);border:1px solid var(--bd);border-radius:var(--r16);padding:13px 14px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color .15s,transform .15s}
 .citem:hover{border-color:var(--bdm);transform:translateY(-1px)}
 .ciname{font-size:14px;font-weight:600;color:var(--tx)}.cilast{font-size:12px;color:var(--tx2);margin-top:2px}
+.deal-citem{background:var(--sur);border:1.5px solid var(--g);border-radius:var(--r16);padding:14px;cursor:pointer;display:flex;align-items:flex-start;gap:12px;transition:transform .18s,box-shadow .18s}
+.deal-citem:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(29,158,117,.12)}
+.deal-citem.urgent{background:linear-gradient(135deg,rgba(29,158,117,.05) 0%,transparent 60%)}
+.chat-sec-hdr{padding:14px 16px 6px;display:flex;align-items:center;justify-content:space-between}
+.chat-sec-title{font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;display:flex;align-items:center;gap:6px}
+.chat-sec-count{background:var(--bg);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;color:var(--tx3)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .cwin{display:flex;flex-direction:column;height:calc(100dvh - 118px)}
 .chdr{background:var(--sur);border-bottom:1px solid var(--bd);padding:11px 14px;display:flex;align-items:center;gap:10px}
 .backb{background:transparent;border:none;cursor:pointer;color:var(--tx2);display:flex;align-items:center;gap:4px;font-size:14px;font-family:inherit;padding:4px}
@@ -1891,49 +1898,160 @@ async function loadChatList() {
   document.getElementById('clist-view').classList.remove('hide')
   document.getElementById('cwin').classList.add('hide')
   if (!ME) return
+  const clistEl = document.getElementById('clist')
+
   const [reqRes, dealRes] = await Promise.all([
     sb.from('requests')
       .select('id, from_user, to_user, from_profile:profiles!requests_from_user_fkey(*), to_profile:profiles!requests_to_user_fkey(*)')
       .or(`from_user.eq.${ME.id},to_user.eq.${ME.id}`)
       .eq('status','confirmed'),
     sb.from('deals')
-      .select('request_id, status')
+      .select('request_id, status, creator_id, other_id, my_offer, their_offer, creator_done, other_done, other_approved, last_editor_id')
       .or(`creator_id.eq.${ME.id},other_id.eq.${ME.id}`)
   ])
   const list = reqRes.data || []
-  if (!list.length) { document.getElementById('clist').innerHTML = '<div class="empty">No chats yet</div>'; return }
-  const dealMap = {}
-  ;(dealRes.data || []).forEach(d => { dealMap[d.request_id] = d.status })
+  if (!list.length) {
+    clistEl.innerHTML = `<div style="padding:48px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px">
+      <div style="font-size:48px">💬</div>
+      <div style="font-size:17px;font-weight:700;color:var(--tx);font-family:'Inter',sans-serif">No chats yet</div>
+      <div style="font-size:14px;color:var(--tx2);line-height:1.6;max-width:260px">Find a skill you need and send a request — when they accept, a chat opens here.</div>
+      <button class="btn-g" onclick="goTab('feed')" style="width:auto;padding:12px 28px">Browse skills →</button>
+    </div>`
+    return
+  }
 
-  const active = [], regular = []
+  // Last messages (bulk, grouped by request_id)
+  const reqIds = list.map(r => r.id)
+  const { data: recentMsgs } = await sb.from('messages')
+    .select('request_id, content, created_at, sender_id')
+    .in('request_id', reqIds)
+    .order('created_at', { ascending: false })
+    .limit(reqIds.length * 8)
+  const lastMsgMap = {}
+  ;(recentMsgs||[]).forEach(m => { if (!lastMsgMap[m.request_id]) lastMsgMap[m.request_id] = m })
+
+  const dealMap = {}
+  ;(dealRes.data||[]).forEach(d => { dealMap[d.request_id] = d })
+
+  // Sort into three buckets
+  const activeDeals = [], chats = [], history = []
   list.forEach(r => {
-    const st = dealMap[r.id]
-    if (st === 'active' || st === 'pending_approval') active.push({ r, dealStatus: st })
-    else regular.push({ r, dealStatus: st })
+    const deal = dealMap[r.id]
+    const st = deal?.status
+    if (st === 'active' || st === 'pending_approval') activeDeals.push({ r, deal })
+    else if (st === 'completed' || st === 'disputed') history.push({ r, deal })
+    else chats.push({ r, deal })
   })
 
-  function renderItem({ r, dealStatus }) {
-    const u = r.from_user === ME.id ? r.to_profile : r.from_profile
-    const otherId = r.from_user === ME.id ? r.to_user : r.from_user
-    const avIn = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials||u.name.substring(0,2))
-    let badge = ''
-    if (dealStatus === 'active') badge = `<span style="font-size:10px;background:#E8F5EE;color:var(--gd);border-radius:10px;padding:2px 7px;font-weight:600">🤝 Active deal</span>`
-    else if (dealStatus === 'pending_approval') badge = `<span style="font-size:10px;background:#FFF8E7;color:#BA7517;border-radius:10px;padding:2px 7px;font-weight:600">⏳ Pending</span>`
-    else if (dealStatus === 'completed') badge = `<span style="font-size:10px;background:#E8F5EE;color:var(--gd);border-radius:10px;padding:2px 7px;font-weight:600">✅ Done</span>`
-    return `<div class="citem" onclick="openChatByUserId('${otherId}')">
-      <div class="av" style="width:42px;height:42px;font-size:14px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avIn}</div>
-      <div style="flex:1;min-width:0"><div class="ciname">${u.name}</div><div style="margin-top:3px">${badge}</div></div>
+  function getOther(r) {
+    return r.from_user === ME.id
+      ? { u: r.to_profile, id: r.to_user }
+      : { u: r.from_profile, id: r.from_user }
+  }
+  function avHtml(u) {
+    const inner = u.avatar_url ? `<img src="${u.avatar_url}">` : (u.avatar_initials||u.name.substring(0,2))
+    return `<div class="av" style="width:44px;height:44px;font-size:14px;flex-shrink:0;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${inner}</div>`
+  }
+  function dealStatusInfo(deal) {
+    const iAm1 = deal.creator_id === ME.id
+    const myDone = iAm1 ? deal.creator_done : deal.other_done
+    const theirDone = iAm1 ? deal.other_done : deal.creator_done
+    if (deal.status === 'pending_approval') {
+      if (deal.last_editor_id === ME.id) return { text:'Waiting for approval', color:'#BA7517', bg:'#FFF8E7', icon:'⏳', urgent:false }
+      return { text:'Your approval needed', color:'#085041', bg:'#E1F5EE', icon:'👆', urgent:true }
+    }
+    if (deal.status === 'active') {
+      if (myDone && theirDone) return { text:'Both done — review pending', color:'#1D9E75', bg:'#E8F5EE', icon:'✅', urgent:false }
+      if (myDone) return { text:'Waiting for other side', color:'#BA7517', bg:'#FFF8E7', icon:'⏳', urgent:false }
+      if (theirDone) return { text:'Other side done — mark yours!', color:'#085041', bg:'#E1F5EE', icon:'⚡', urgent:true }
+      return { text:'Deal in progress', color:'#1D9E75', bg:'#E8F5EE', icon:'🤝', urgent:false }
+    }
+    return { text:'', color:'', bg:'', icon:'', urgent:false }
+  }
+
+  function renderDealCard({ r, deal }) {
+    const { u, id: otherId } = getOther(r)
+    const si = dealStatusInfo(deal)
+    const iAm1 = deal.creator_id === ME.id
+    const myOffer = iAm1 ? deal.my_offer : deal.their_offer
+    const theirOffer = iAm1 ? deal.their_offer : deal.my_offer
+    return `<div class="deal-citem${si.urgent?' urgent':''}" onclick="openChatByUserId('${otherId}')">
+      ${avHtml(u)}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+          <div class="ciname">${u.name}</div>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;color:var(--tx3)"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        ${myOffer||theirOffer ? `<div style="font-size:12px;color:var(--tx2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔄 ${myOffer||'?'} ↔ ${theirOffer||'?'}</div>` : ''}
+        <div style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:5px 10px;border-radius:var(--r8);background:${si.bg}">
+          <span style="font-size:11px">${si.icon}</span>
+          <span style="font-size:11px;font-weight:600;color:${si.color}">${si.text}</span>
+        </div>
+      </div>
+    </div>`
+  }
+
+  function renderChatCard({ r, deal }) {
+    const { u, id: otherId } = getOther(r)
+    const lastMsg = lastMsgMap[r.id]
+    const preview = lastMsg
+      ? (lastMsg.sender_id === ME.id ? 'You: ' : '') + (lastMsg.content||'').substring(0,48)
+      : 'Start the conversation →'
+    const isHistory = deal?.status === 'completed' || deal?.status === 'disputed'
+    return `<div class="citem${isHistory?' opacity:0.7':''}" onclick="openChatByUserId('${otherId}')" style="${isHistory?'opacity:.7':''}">
+      ${avHtml(u)}
+      <div style="flex:1;min-width:0">
+        <div class="ciname">${u.name}</div>
+        <div class="cilast" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${preview}</div>
+      </div>
+      ${isHistory?`<span style="font-size:10px;background:#E8F5EE;color:var(--gd);border-radius:10px;padding:2px 7px;font-weight:600;flex-shrink:0">✅ Done</span>`:''}
     </div>`
   }
 
   let html = ''
-  if (active.length) {
-    html += `<div style="padding:8px 16px 4px;font-size:11px;font-weight:600;color:var(--gd);text-transform:uppercase;letter-spacing:.5px">Active Deals</div>`
-    html += active.map(renderItem).join('')
-    if (regular.length) html += `<div style="height:1px;background:var(--bd);margin:4px 0"></div><div style="padding:8px 16px 4px;font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Other Chats</div>`
+
+  if (activeDeals.length) {
+    html += `<div class="chat-sec-hdr">
+      <div class="chat-sec-title">
+        <div style="width:7px;height:7px;border-radius:50%;background:var(--g);animation:pulse 2s infinite"></div>
+        Active deals
+        <div class="chat-sec-count">${activeDeals.length}</div>
+      </div>
+    </div>
+    <div style="padding:0 12px;display:flex;flex-direction:column;gap:8px">${activeDeals.map(renderDealCard).join('')}</div>`
   }
-  html += regular.map(renderItem).join('')
-  document.getElementById('clist').innerHTML = html
+
+  if (chats.length) {
+    html += `<div class="chat-sec-hdr" style="margin-top:${activeDeals.length?'10px':'0'}">
+      <div class="chat-sec-title">💬 Chats <div class="chat-sec-count">${chats.length}</div></div>
+    </div>
+    <div style="padding:0 12px;display:flex;flex-direction:column;gap:8px">${chats.map(renderChatCard).join('')}</div>`
+  }
+
+  if (!activeDeals.length && !chats.length) {
+    html += `<div style="padding:32px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-size:40px">🕊️</div>
+      <div style="font-size:15px;font-weight:600;color:var(--tx)">All clear — no active chats</div>
+      <button class="btn-g" onclick="goTab('feed')" style="width:auto;padding:11px 24px;font-size:14px">Find someone to swap with →</button>
+    </div>`
+  }
+
+  if (history.length) {
+    html += `<div class="chat-sec-hdr" onclick="toggleChatHistory(this)" style="margin-top:10px;cursor:pointer">
+      <div class="chat-sec-title" style="color:var(--tx3)">🕐 History <div class="chat-sec-count">${history.length}</div></div>
+      <svg id="hist-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:var(--tx3);transition:transform .2s"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div id="chat-history" class="hide" style="padding:0 12px;display:flex;flex-direction:column;gap:8px;padding-bottom:16px">${history.map(renderChatCard).join('')}</div>`
+  }
+
+  clistEl.innerHTML = html
+}
+function toggleChatHistory() {
+  const el = document.getElementById('chat-history')
+  const ch = document.getElementById('hist-chevron')
+  if (!el) return
+  const hidden = el.classList.toggle('hide')
+  if (ch) ch.style.transform = hidden ? '' : 'rotate(90deg)'
 }
 function closeChat() {
   activeChatReqId = null; activeChatOtherId = null
