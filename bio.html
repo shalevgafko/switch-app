@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<meta name="theme-color" content="#085041">
+<title>switch — swap skills, not cash</title>
+<style>
+  :root {
+    --g:  #1D9E75;
+    --gd: #085041;
+    --bg: #F7F6F2;
+  }
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    height:100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--gd);
+    overflow-x: hidden;
+  }
+
+  /* ── background ── */
+  .bg {
+    position: fixed; inset: 0; z-index: 0;
+    background: linear-gradient(160deg, #042e24 0%, #063d31 30%, #085041 55%, #0f6655 75%, #1D9E75 100%);
+  }
+  .bg-dots {
+    position: fixed; inset: 0; z-index: 1;
+    background-image: radial-gradient(circle, rgba(255,255,255,.07) 1px, transparent 1px);
+    background-size: 36px 36px;
+  }
+
+  /* ── floating chips in background ── */
+  .chips-bg {
+    position: fixed; inset: 0; z-index: 2;
+    pointer-events: none; overflow: hidden;
+  }
+  .fchip {
+    position: absolute; bottom: -60px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-size: 14px; color: rgba(255,255,255,.5);
+    white-space: nowrap;
+    animation: floatUp linear infinite;
+  }
+
+  @keyframes floatUp {
+    0%   { transform: translateY(0) rotate(-3deg); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: .6; }
+    100% { transform: translateY(-110vh) rotate(3deg); opacity: 0; }
+  }
+
+  /* ── page ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100dvh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 48px 24px 60px;
+    gap: 0;
+  }
+
+  /* ── logo ── */
+  .logo-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    margin-bottom: 36px;
+    animation: fadeDown .8s cubic-bezier(.32,.72,0,1) both;
+  }
+  .logo-icon {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .arrows { display: flex; flex-direction: column; gap: 6px; }
+  .arr-u {
+    width:0; height:0;
+    border-left:11px solid transparent;
+    border-right:11px solid transparent;
+    border-bottom:15px solid rgba(255,255,255,.88);
+  }
+  .arr-d {
+    width:0; height:0;
+    border-left:11px solid transparent;
+    border-right:11px solid transparent;
+    border-top:15px solid rgba(255,255,255,.88);
+  }
+  .logo-text {
+    font-size: 64px; font-weight: 800; color: #fff;
+    letter-spacing: -4px; line-height: 1;
+  }
+  .logo-text .dim { color: rgba(255,255,255,.45); }
+  .logo-tag {
+    font-size: 15px; color: rgba(255,255,255,.55);
+    letter-spacing: 1px; font-weight: 400;
+  }
+
+  /* ── headline ── */
+  .headline {
+    text-align: center;
+    animation: fadeUp .8s .15s cubic-bezier(.32,.72,0,1) both;
+    margin-bottom: 20px;
+  }
+  .headline h1 {
+    font-size: 30px; font-weight: 800; color: #fff;
+    line-height: 1.2; letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+  .headline p {
+    font-size: 16px; color: rgba(255,255,255,.6);
+    line-height: 1.7; max-width: 320px; margin: 0 auto;
+  }
+
+  /* ── skill pills row ── */
+  .pills {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center; margin-bottom: 36px;
+    animation: fadeUp .8s .3s cubic-bezier(.32,.72,0,1) both;
+  }
+  .pill {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 100px; padding: 7px 16px;
+    font-size: 14px; color: rgba(255,255,255,.82);
+    font-weight: 500;
+    transition: background .2s;
+  }
+  .pill:hover { background: rgba(255,255,255,.18); }
+
+  /* ── cards ── */
+  .cards {
+    width: 100%; max-width: 360px;
+    display: flex; flex-direction: column; gap: 12px;
+    margin-bottom: 28px;
+    animation: fadeUp .8s .45s cubic-bezier(.32,.72,0,1) both;
+  }
+
+  .cta-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 20px 22px;
+    display: flex; align-items: center; gap: 16px;
+    text-decoration: none;
+    transition: transform .2s, box-shadow .2s;
+    cursor: pointer;
+    border: none; width: 100%;
+    font-family: inherit;
+  }
+  .cta-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.25); }
+  .cta-card:active { transform: scale(.98); }
+
+  .cta-card.primary {
+    background: linear-gradient(135deg, #1D9E75, #085041);
+    box-shadow: 0 4px 24px rgba(8,80,65,.5);
+  }
+  .cta-card.primary .ci { background: rgba(255,255,255,.15); }
+  .cta-card.primary .ct { color: #fff; }
+  .cta-card.primary .cs { color: rgba(255,255,255,.7); }
+
+  .cta-card.dark {
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.14);
+  }
+  .cta-card.dark .ci { background: rgba(255,255,255,.1); }
+  .cta-card.dark .ct { color: #fff; }
+  .cta-card.dark .cs { color: rgba(255,255,255,.5); }
+
+  .ci {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: var(--bg); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .ctext { flex: 1; text-align: right; }
+  .ct { font-size: 16px; font-weight: 700; color: #18181A; }
+  .cs { font-size: 13px; color: #52524E; margin-top: 2px; }
+  .carr {
+    font-size: 20px; color: rgba(0,0,0,.2);
+    flex-shrink: 0;
+  }
+  .cta-card.primary .carr,
+  .cta-card.dark .carr { color: rgba(255,255,255,.35); }
+
+  /* ── stats row ── */
+  .stats {
+    display: flex; gap: 24px;
+    animation: fadeUp .8s .6s cubic-bezier(.32,.72,0,1) both;
+    margin-bottom: 36px;
+  }
+  .stat { text-align: center; }
+  .sn { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px; }
+  .sl { font-size: 12px; color: rgba(255,255,255,.45); margin-top: 2px; }
+
+  /* ── footer ── */
+  .footer {
+    text-align: center;
+    animation: fadeUp .8s .75s cubic-bezier(.32,.72,0,1) both;
+  }
+  .footer p { font-size: 12px; color: rgba(255,255,255,.3); }
+
+  /* ── animations ── */
+  @keyframes fadeDown {
+    from { opacity:0; transform:translateY(-24px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(24px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ── coming soon badge ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 100px; padding: 5px 14px;
+    font-size: 12px; font-weight: 600; color: rgba(255,255,255,.7);
+    margin-bottom: 20px;
+    animation: fadeDown .8s .05s cubic-bezier(.32,.72,0,1) both;
+  }
+  .badge-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #1D9E75;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="bg-dots"></div>
+
+<!-- floating background chips -->
+<div class="chips-bg" id="chipsBg"></div>
+
+<div class="page">
+
+  <div class="badge">
+    <div class="badge-dot"></div>
+    פעיל עכשיו · ישראל 🇮🇱
+  </div>
+
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <div class="arrows">
+        <div class="arr-u"></div>
+        <div class="arr-d"></div>
+      </div>
+      <div class="logo-text"><span class="dim">sw</span>itch</div>
+    </div>
+    <div class="logo-tag">swap skills, not cash</div>
+  </div>
+
+  <div class="headline">
+    <h1>תציע מה שאתה יודע.<br>תקבל מה שאתה צריך.</h1>
+    <p>switch היא פלטפורמה לחליפין של כישורים — בלי כסף, בלי עמלות. רק אנשים שמחליפים מה שיש להם.</p>
+  </div>
+
+  <div class="pills">
+    <div class="pill">🎨 עיצוב</div>
+    <div class="pill">💻 קוד</div>
+    <div class="pill">🎵 מוזיקה</div>
+    <div class="pill">🍕 בישול</div>
+    <div class="pill">📸 צילום</div>
+    <div class="pill">💪 כושר</div>
+    <div class="pill">🌍 שפות</div>
+    <div class="pill">✍️ כתיבה</div>
+  </div>
+
+  <div class="cards">
+
+    <a href="https://shalevgafko.github.io/switch-app" class="cta-card primary">
+      <div class="ci">🚀</div>
+      <div class="ctext">
+        <div class="ct">כנס לאפליקציה</div>
+        <div class="cs">פתוחה לכולם · ללא הורדה</div>
+      </div>
+      <div class="carr">←</div>
+    </a>
+
+    <a href="https://www.instagram.com/the.switch.app" class="cta-card dark">
+      <div class="ci">📸</div>
+      <div class="ctext">
+        <div class="ct">אינסטגרם</div>
+        <div class="cs">@The.Switch.App</div>
+      </div>
+      <div class="carr">←</div>
+    </a>
+
+    <a href="mailto:shalevgafko@gmail.com" class="cta-card dark">
+      <div class="ci">✉️</div>
+      <div class="ctext">
+        <div class="ct">צור קשר</div>
+        <div class="cs">שאלות, שיתופי פעולה, רעיונות</div>
+      </div>
+      <div class="carr">←</div>
+    </a>
+
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="sn" id="statUsers">—</div>
+      <div class="sl">משתמשים</div>
+    </div>
+    <div class="stat" style="opacity:.3;font-size:24px;color:#fff;align-self:center">·</div>
+    <div class="stat">
+      <div class="sn" id="statDeals">—</div>
+      <div class="sl">דילים</div>
+    </div>
+    <div class="stat" style="opacity:.3;font-size:24px;color:#fff;align-self:center">·</div>
+    <div class="stat">
+      <div class="sn">חינם</div>
+      <div class="sl">לתמיד</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>© 2026 switch · swap skills, not cash</p>
+  </div>
+
+</div>
+
+<script>
+  // ── Live stats from Supabase ──────────────────────────────
+  const SB_URL = 'https://ubrsnymjvgasneeuqewv.supabase.co'
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs'
+
+  async function loadStats() {
+    try {
+      const h = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Prefer: 'count=exact' }
+      const [uRes, dRes] = await Promise.all([
+        fetch(`${SB_URL}/rest/v1/profiles?select=id`, { headers: { ...h, 'Range-Unit': 'items', Range: '0-0' } }),
+        fetch(`${SB_URL}/rest/v1/deals?select=id`, { headers: { ...h, 'Range-Unit': 'items', Range: '0-0' } }),
+      ])
+      const uCount = uRes.headers.get('content-range')?.split('/')[1]
+      const dCount = dRes.headers.get('content-range')?.split('/')[1]
+      if (uCount) document.getElementById('statUsers').textContent = fmt(+uCount)
+      if (dCount) document.getElementById('statDeals').textContent = fmt(+dCount)
+    } catch(e) { /* silent */ }
+  }
+
+  function fmt(n) {
+    if (n >= 1000) return (n/1000).toFixed(1).replace('.0','') + 'K'
+    return n.toString()
+  }
+
+  loadStats()
+
+  // ── Floating background chips ─────────────────────────────
+  const labels = ['🎨 עיצוב','💻 קוד','🎵 מוזיקה','🍕 בישול','📸 צילום',
+                  '💪 כושר','🌍 שפות','✍️ כתיבה','🏋️ אימון','🎸 גיטרה',
+                  '🧁 אפייה','🎬 עריכה','🧘 יוגה','🪴 גינון','♟️ שחמט']
+  const bg = document.getElementById('chipsBg')
+
+  function spawnChip() {
+    const el = document.createElement('div')
+    el.className = 'fchip'
+    el.textContent = labels[Math.floor(Math.random() * labels.length)]
+    el.style.left  = Math.random() * 90 + '%'
+    const dur  = 8 + Math.random() * 10
+    const delay = Math.random() * -dur
+    el.style.animationDuration  = dur + 's'
+    el.style.animationDelay     = delay + 's'
+    el.style.fontSize = (12 + Math.random() * 6) + 'px'
+    bg.appendChild(el)
+    setTimeout(() => el.remove(), (dur + Math.abs(delay)) * 1000 + 1000)
+  }
+
+  for (let i = 0; i < 12; i++) spawnChip()
+  setInterval(spawnChip, 1800)
+</script>
+</body>
+</html>
