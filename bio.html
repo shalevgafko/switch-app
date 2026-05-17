@@ -182,15 +182,30 @@
   .cta-card.primary .carr,
   .cta-card.dark .carr { color: rgba(255,255,255,.35); }
 
-  /* ── stats row ── */
-  .stats {
-    display: flex; gap: 24px;
+  /* ── philosophy ── */
+  .philosophy {
+    width: 100%; max-width: 360px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 28px;
     animation: fadeUp .8s .6s cubic-bezier(.32,.72,0,1) both;
-    margin-bottom: 36px;
   }
-  .stat { text-align: center; }
-  .sn { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px; }
-  .sl { font-size: 12px; color: rgba(255,255,255,.45); margin-top: 2px; }
+  .phi-title {
+    font-size: 11px; font-weight: 700; color: var(--g);
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px;
+  }
+  .phi-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-bottom: 14px;
+  }
+  .phi-item:last-child { margin-bottom: 0; }
+  .phi-icon {
+    font-size: 20px; flex-shrink: 0; margin-top: 1px;
+  }
+  .phi-text { font-size: 14px; color: rgba(255,255,255,.7); line-height: 1.6; }
+  .phi-text strong { color: #fff; font-weight: 600; }
 
   /* ── footer ── */
   .footer {
@@ -302,20 +317,19 @@
 
   </div>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="sn" id="statUsers">—</div>
-      <div class="sl">משתמשים</div>
+  <div class="philosophy">
+    <div class="phi-title">הרעיון מאחורי switch</div>
+    <div class="phi-item">
+      <div class="phi-icon">💡</div>
+      <div class="phi-text"><strong>לכולם יש משהו לתת.</strong> לא צריך כסף כדי לתת ערך — כל אחד יודע משהו שמישהו אחר צריך.</div>
     </div>
-    <div class="stat" style="opacity:.3;font-size:24px;color:#fff;align-self:center">·</div>
-    <div class="stat">
-      <div class="sn" id="statDeals">—</div>
-      <div class="sl">דילים</div>
+    <div class="phi-item">
+      <div class="phi-icon">🔄</div>
+      <div class="phi-text"><strong>חליפין הוא הדבר הכי טבעי בעולם.</strong> לפני שהמציאו כסף, אנשים פשוט החליפו. switch מחזיר את זה לעידן המודרני.</div>
     </div>
-    <div class="stat" style="opacity:.3;font-size:24px;color:#fff;align-self:center">·</div>
-    <div class="stat">
-      <div class="sn">חינם</div>
-      <div class="sl">לתמיד</div>
+    <div class="phi-item">
+      <div class="phi-icon">🤝</div>
+      <div class="phi-text"><strong>קהילה > שוק.</strong> כשאין כסף בתמונה, נשארים רק אנשים שבאמת רוצים לעזור — ומצפים לאותו דבר בחזרה.</div>
     </div>
   </div>
 
@@ -326,31 +340,6 @@
 </div>
 
 <script>
-  // ── Live stats from Supabase ──────────────────────────────
-  const SB_URL = 'https://ubrsnymjvgasneeuqewv.supabase.co'
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs'
-
-  async function loadStats() {
-    try {
-      const h = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Prefer: 'count=exact' }
-      const [uRes, dRes] = await Promise.all([
-        fetch(`${SB_URL}/rest/v1/profiles?select=id`, { headers: { ...h, 'Range-Unit': 'items', Range: '0-0' } }),
-        fetch(`${SB_URL}/rest/v1/deals?select=id`, { headers: { ...h, 'Range-Unit': 'items', Range: '0-0' } }),
-      ])
-      const uCount = uRes.headers.get('content-range')?.split('/')[1]
-      const dCount = dRes.headers.get('content-range')?.split('/')[1]
-      if (uCount) document.getElementById('statUsers').textContent = fmt(+uCount)
-      if (dCount) document.getElementById('statDeals').textContent = fmt(+dCount)
-    } catch(e) { /* silent */ }
-  }
-
-  function fmt(n) {
-    if (n >= 1000) return (n/1000).toFixed(1).replace('.0','') + 'K'
-    return n.toString()
-  }
-
-  loadStats()
-
   // ── Floating background chips ─────────────────────────────
   const labels = ['🎨 עיצוב','💻 קוד','🎵 מוזיקה','🍕 בישול','📸 צילום',
                   '💪 כושר','🌍 שפות','✍️ כתיבה','🏋️ אימון','🎸 גיטרה',
