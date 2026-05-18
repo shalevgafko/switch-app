@@ -1828,9 +1828,11 @@ async function acceptReq(reqId, name, fromUserId) {
   loadReqs()
 }
 async function declineReq(reqId) {
+  const { data: reqData } = await sb.from('requests').select('from_user, to_user').eq('id', reqId).single()
   await sb.from('requests').update({ status: 'declined' }).eq('id', reqId)
   toast('Request declined')
   loadReqs()
+  if (reqData?.from_user) searchThreeWay(reqData.from_user, ME.id).catch(() => {})
 }
 
 // ── RATING ──
@@ -2844,12 +2846,14 @@ async function doSignOut() {
 }
 
 // ── NOTIFICATIONS ──
-const NOTIF_ICONS = { new_request:'🤝', request_accepted:'🎉', new_message:'💬', new_like:'❤️', new_comment:'💬' }
-const NOTIF_ICO_CLASS = { new_request:'req', request_accepted:'req', new_message:'msg', new_like:'like', new_comment:'comm' }
+const NOTIF_ICONS = { new_request:'🤝', request_accepted:'🎉', new_message:'💬', new_like:'❤️', new_comment:'💬', three_way_opportunity:'🔥', three_way_pending_approval:'🔗', three_way_approved:'🎉', three_way_missed:'😔' }
+const NOTIF_ICO_CLASS = { new_request:'req', request_accepted:'req', new_message:'msg', new_like:'like', new_comment:'comm', three_way_opportunity:'req', three_way_pending_approval:'req', three_way_approved:'req', three_way_missed:'msg' }
 
-async function notify(userId, type, title, body) {
+async function notify(userId, type, title, body, data) {
   if (!userId || userId === ME?.id) return
-  try { await sb.from('notifications').insert({ user_id: userId, type, title, body: body || '' }) } catch(e) {}
+  const rec = { user_id: userId, type, title, body: body || '' }
+  if (data) rec.data = data
+  try { await sb.from('notifications').insert(rec) } catch(e) {}
 }
 
 async function loadNotifCount() {
@@ -2893,15 +2897,24 @@ async function renderNotifs() {
   const { data } = await sb.from('notifications').select('*').eq('user_id', ME.id).order('created_at', { ascending: false }).limit(25)
   const notifs = data || []
   if (!notifs.length) { list.innerHTML = '<div class="notif-empty">🔔<br>No notifications yet</div>'; return }
-  list.innerHTML = notifs.map(n => `
-    <div class="notif-item ${n.is_read ? '' : 'unread'}">
+  list.innerHTML = notifs.map(n => {
+    const d = n.data || {}
+    let btn = ''
+    if (n.type === 'three_way_opportunity' && d.proposal_id) {
+      btn = `<button onclick="claimThreeWay('${d.proposal_id}',this)" style="margin-top:8px;width:100%;padding:9px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">🔥 Join this deal →</button>`
+    } else if (n.type === 'three_way_pending_approval' && d.claim_id) {
+      btn = `<button onclick="approveThreeWay('${d.claim_id}',this)" style="margin-top:8px;width:100%;padding:9px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">✅ Approve three-way deal</button>`
+    }
+    return `<div class="notif-item ${n.is_read ? '' : 'unread'}">
       <div class="notif-ico ${NOTIF_ICO_CLASS[n.type] || 'msg'}">${NOTIF_ICONS[n.type] || '🔔'}</div>
       <div style="flex:1;min-width:0">
         <div class="notif-title">${escHtml(n.title)}</div>
         ${n.body ? `<div class="notif-body">${escHtml(n.body)}</div>` : ''}
         <div class="notif-time">${formatTimeAgo(n.created_at)}</div>
+        ${btn}
       </div>
-    </div>`).join('')
+    </div>`
+  }).join('')
 }
 
 async function markAllRead() {
@@ -2936,6 +2949,139 @@ function formatTimeAgo(iso) {
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {})
+}
+
+// ── THREE-WAY DEAL ──
+async function searchThreeWay(userAId, userBId) {
+  try {
+    const { data: proposal, error: propErr } = await withTimeout(
+      sb.from('three_way_proposals').insert({ user_a_id: userAId, user_b_id: userBId }).select().single(), 7000)
+    if (propErr || !proposal) return
+
+    // Find candidates: users connected to A via requests
+    const { data: aReqs } = await sb.from('requests')
+      .select('from_user, to_user')
+      .or(`from_user.eq.${userAId},to_user.eq.${userAId}`)
+      .neq('status', 'declined').limit(60)
+    const cIds = new Set()
+    ;(aReqs || []).forEach(r => {
+      const other = r.from_user === userAId ? r.to_user : r.from_user
+      if (other !== userAId && other !== userBId) cIds.add(other)
+    })
+    // Broaden to B's network if too few
+    if (cIds.size < 3) {
+      const { data: bReqs } = await sb.from('requests')
+        .select('from_user, to_user')
+        .or(`from_user.eq.${userBId},to_user.eq.${userBId}`)
+        .neq('status', 'declined').limit(60)
+      ;(bReqs || []).forEach(r => {
+        const other = r.from_user === userBId ? r.to_user : r.from_user
+        if (other !== userAId && other !== userBId) cIds.add(other)
+      })
+    }
+    // Last resort: any user with services
+    let ids = Array.from(cIds)
+    if (!ids.length) {
+      const { data: svcUsers } = await sb.from('services').select('user_id').neq('user_id', userAId).neq('user_id', userBId).limit(20)
+      ids = [...new Set((svcUsers || []).map(s => s.user_id))]
+    }
+    if (!ids.length) return
+    ids = ids.slice(0, 10)
+
+    const [{ data: uA }, { data: uB }] = await Promise.all([
+      sb.from('profiles').select('name').eq('id', userAId).single(),
+      sb.from('profiles').select('name').eq('id', userBId).single()
+    ])
+    const aName = uA?.name || 'Someone'
+    const bName = uB?.name || 'someone'
+
+    for (const cId of ids) {
+      await notify(cId, 'three_way_opportunity',
+        '🔥 הזדמנות — הצטרף לעסקה!',
+        `${aName} ו-${bName} צריכים גורם שלישי — הראשון שיתפוס יכנס`,
+        { proposal_id: proposal.id, user_a_name: aName, user_b_name: bName })
+    }
+  } catch(e) {}
+}
+
+async function claimThreeWay(proposalId, btn) {
+  btn.disabled = true; btn.textContent = 'Claiming...'
+  try {
+    const { error: claimErr } = await withTimeout(
+      sb.from('three_way_claims').insert({ proposal_id: proposalId, user_c_id: ME.id }), 7000)
+    if (claimErr) {
+      if (claimErr.code === '23505') {
+        btn.textContent = '❌ כבר נתפס על ידי מישהו אחר'
+        btn.style.background = 'var(--tx3)'
+      } else {
+        toast('Error: ' + claimErr.message); btn.disabled = false; btn.textContent = '🔥 Join this deal →'
+      }
+      return
+    }
+    // Mark proposal as claimed
+    await sb.from('three_way_proposals').update({ status: 'claimed' }).eq('id', proposalId).eq('status', 'searching')
+
+    const { data: claim } = await sb.from('three_way_claims').select('id').eq('proposal_id', proposalId).eq('user_c_id', ME.id).single()
+    const { data: proposal } = await sb.from('three_way_proposals').select('user_a_id, user_b_id').eq('id', proposalId).single()
+
+    if (claim && proposal) {
+      const msg = `${ME.name} רוצה להיות הגורם השלישי — ${ME.name} יחבר בין ${proposal.user_a_id === ME.id ? 'עצמך' : 'A'} ל-B`
+      await notify(proposal.user_a_id, 'three_way_pending_approval', '🔗 נמצא גורם שלישי!',
+        `${ME.name} רוצה להצטרף — אשר כדי לסגור את העסקה המשולשת`,
+        { claim_id: claim.id, user_c_name: ME.name })
+      await notify(proposal.user_b_id, 'three_way_pending_approval', '🔗 נמצא גורם שלישי!',
+        `${ME.name} רוצה להצטרף — אשר כדי לסגור את העסקה המשולשת`,
+        { claim_id: claim.id, user_c_name: ME.name })
+    }
+
+    btn.textContent = '✅ הצטרפת! ממתין לאישור שני הצדדים...'
+    btn.style.background = 'var(--gd)'
+    toast('הצטרפת לעסקה! A ו-B יקבלו הודעה לאשר 🙏')
+    posthog.capture('three_way_claimed', { proposal_id: proposalId })
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '🔥 Join this deal →'
+    toast('Error: ' + e.message)
+  }
+}
+
+async function approveThreeWay(claimId, btn) {
+  btn.disabled = true; btn.textContent = 'Approving...'
+  try {
+    const { data: claim } = await withTimeout(
+      sb.from('three_way_claims').select('*, proposal:three_way_proposals(user_a_id, user_b_id)').eq('id', claimId).single(), 7000)
+    if (!claim) { btn.textContent = 'Not found'; return }
+
+    const proposal = claim.proposal
+    const isA = proposal.user_a_id === ME.id
+    await withTimeout(sb.from('three_way_claims').update({ [isA ? 'a_approved' : 'b_approved']: true }).eq('id', claimId), 6000)
+
+    const { data: updated } = await sb.from('three_way_claims').select('a_approved, b_approved').eq('id', claimId).single()
+    if (updated?.a_approved && updated?.b_approved) {
+      await sb.from('three_way_claims').update({ status: 'approved' }).eq('id', claimId)
+      await sb.from('three_way_proposals').update({ status: 'completed' }).eq('id', claim.proposal_id)
+      // Create confirmed connections: A↔C and C↔B
+      for (const [u1, u2] of [[proposal.user_a_id, claim.user_c_id], [claim.user_c_id, proposal.user_b_id]]) {
+        const { data: existing } = await sb.from('requests').select('id').or(`and(from_user.eq.${u1},to_user.eq.${u2}),and(from_user.eq.${u2},to_user.eq.${u1})`).maybeSingle()
+        if (existing) await sb.from('requests').update({ status: 'confirmed' }).eq('id', existing.id)
+        else await sb.from('requests').insert({ from_user: u1, to_user: u2, status: 'confirmed' })
+      }
+      await notify(claim.user_c_id, 'three_way_approved', '🎉 עסקה משולשת מאושרת!', 'שני הצדדים אישרו — בדוק את הצ\'אטים שלך!')
+      const otherParty = isA ? proposal.user_b_id : proposal.user_a_id
+      await notify(otherParty, 'three_way_approved', '🎉 עסקה משולשת מאושרת!', 'כל הצדדים אישרו — בדוק את הצ\'אטים שלך!')
+      btn.textContent = '🎉 אושר!'
+      btn.style.background = 'var(--gd)'
+      toast('🎉 עסקה משולשת מאושרת! בדוק את הצ\'אטים')
+      posthog.capture('three_way_completed', { claim_id: claimId })
+      setTimeout(() => { loadChatList(); goTab('chat') }, 1500)
+    } else {
+      btn.textContent = '✅ אישרת — ממתין לצד השני'
+      btn.style.background = 'var(--gd)'
+      toast('אישרת! ממתין לאישור הצד השני ⏳')
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '✅ Approve three-way deal'
+    toast('Error: ' + e.message)
+  }
 }
 </script>
 </body>
