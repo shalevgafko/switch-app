@@ -2901,7 +2901,7 @@ async function renderNotifs() {
     const d = n.data || {}
     let btn = ''
     if (n.type === 'three_way_opportunity' && d.proposal_id) {
-      btn = `<button onclick="claimThreeWay('${d.proposal_id}',this)" style="margin-top:8px;width:100%;padding:9px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">🔥 Join this deal →</button>`
+      btn = `<button onclick="claimThreeWay('${d.proposal_id}','${d.user_a_id||''}','${d.user_b_id||''}',this)" style="margin-top:8px;width:100%;padding:9px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">🔥 Join this deal →</button>`
     } else if (n.type === 'three_way_pending_approval' && d.claim_id) {
       btn = `<button onclick="approveThreeWay('${d.claim_id}',this)" style="margin-top:8px;width:100%;padding:9px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">✅ Approve three-way deal</button>`
     }
@@ -2999,12 +2999,12 @@ async function searchThreeWay(userAId, userBId) {
       await notify(cId, 'three_way_opportunity',
         '🔥 הזדמנות — הצטרף לעסקה!',
         `${aName} ו-${bName} צריכים גורם שלישי — הראשון שיתפוס יכנס`,
-        { proposal_id: proposal.id, user_a_name: aName, user_b_name: bName })
+        { proposal_id: proposal.id, user_a_id: userAId, user_b_id: userBId, user_a_name: aName, user_b_name: bName })
     }
   } catch(e) {}
 }
 
-async function claimThreeWay(proposalId, btn) {
+async function claimThreeWay(proposalId, userAId, userBId, btn) {
   btn.disabled = true; btn.textContent = 'Claiming...'
   try {
     const { error: claimErr } = await withTimeout(
@@ -3018,22 +3018,16 @@ async function claimThreeWay(proposalId, btn) {
       }
       return
     }
-    // Mark proposal as claimed
     await sb.from('three_way_proposals').update({ status: 'claimed' }).eq('id', proposalId).eq('status', 'searching')
-
     const { data: claim } = await sb.from('three_way_claims').select('id').eq('proposal_id', proposalId).eq('user_c_id', ME.id).single()
-    const { data: proposal } = await sb.from('three_way_proposals').select('user_a_id, user_b_id').eq('id', proposalId).single()
-
-    if (claim && proposal) {
-      const msg = `${ME.name} רוצה להיות הגורם השלישי — ${ME.name} יחבר בין ${proposal.user_a_id === ME.id ? 'עצמך' : 'A'} ל-B`
-      await notify(proposal.user_a_id, 'three_way_pending_approval', '🔗 נמצא גורם שלישי!',
+    if (claim && userAId && userBId) {
+      await notify(userAId, 'three_way_pending_approval', '🔗 נמצא גורם שלישי!',
         `${ME.name} רוצה להצטרף — אשר כדי לסגור את העסקה המשולשת`,
         { claim_id: claim.id, user_c_name: ME.name })
-      await notify(proposal.user_b_id, 'three_way_pending_approval', '🔗 נמצא גורם שלישי!',
+      await notify(userBId, 'three_way_pending_approval', '🔗 נמצא גורם שלישי!',
         `${ME.name} רוצה להצטרף — אשר כדי לסגור את העסקה המשולשת`,
         { claim_id: claim.id, user_c_name: ME.name })
     }
-
     btn.textContent = '✅ הצטרפת! ממתין לאישור שני הצדדים...'
     btn.style.background = 'var(--gd)'
     toast('הצטרפת לעסקה! A ו-B יקבלו הודעה לאשר 🙏')
