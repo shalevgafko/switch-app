@@ -210,6 +210,12 @@ html,body{height:100%;background:var(--bg);color:var(--tx);-webkit-font-smoothin
 .promo.b2b{background:var(--pl);color:var(--pd)}
 .promo-ico{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .promo-title{font-size:14px;font-weight:700}.promo-sub{font-size:12px;opacity:.8;margin-top:2px}
+.push-toggle{position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0}
+.push-toggle input{opacity:0;width:0;height:0}
+.push-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:26px;transition:.2s}
+.push-slider:before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.push-toggle input:checked + .push-slider{background:var(--g)}
+.push-toggle input:checked + .push-slider:before{transform:translateX(18px)}
 
 /* ── EDIT PROFILE OVERLAY ── */
 #edit-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:150;align-items:flex-end;justify-content:center}
@@ -2710,6 +2716,21 @@ async function loadProf() {
       <div class="promo boost" onclick="toast('Boost — coming soon!')"><div class="promo-ico">🚀</div><div><div class="promo-title">Boost your offer</div><div class="promo-sub">Promote your skill to the top of the feed</div></div></div>
       <div class="promo b2b" onclick="toast('B2B — coming soon!')"><div class="promo-ico">🏢</div><div><div class="promo-title">B2B</div><div class="promo-sub">switch for companies &amp; communities</div></div></div>
     </div>
+    <div class="sc">
+      <div class="sc-lbl">הגדרות</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+        <div>
+          <div style="font-size:14px;font-weight:500;color:var(--tx)">🔔 התראות push</div>
+          <div style="font-size:12px;color:var(--tx3);margin-top:2px" id="push-status-label">
+            ${typeof Notification === 'undefined' ? 'לא נתמך בדפדפן זה' : Notification.permission === 'granted' ? 'מופעל' : Notification.permission === 'denied' ? 'נחסם — שנה בהגדרות הדפדפן' : 'כבוי'}
+          </div>
+        </div>
+        ${typeof Notification === 'undefined' || Notification.permission === 'denied'
+          ? `<span style="font-size:11px;color:var(--tx3)">${typeof Notification === 'undefined' ? '' : 'שנה בדפדפן'}</span>`
+          : `<label class="push-toggle"><input type="checkbox" id="push-toggle-input" ${Notification.permission === 'granted' ? 'checked' : ''} onchange="togglePushNotif(this)"><span class="push-slider"></span></label>`
+        }
+      </div>
+    </div>
     <div class="sc" style="padding-bottom:8px">
       <div class="sc-lbl">Legal</div>
       <button onclick="openOverlay('privacy-overlay')" style="width:100%;background:none;border:none;padding:11px 0;font-size:14px;color:var(--tx2);cursor:pointer;text-align:right;font-family:inherit;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center">Privacy Policy <span style="color:var(--tx3)">›</span></button>
@@ -2903,6 +2924,39 @@ function urlBase64ToUint8Array(b64) {
   const b = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(b)
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+}
+
+async function togglePushNotif(input) {
+  if (input.checked) {
+    input.disabled = true
+    await subscribePush()
+    input.disabled = false
+    const lbl = document.getElementById('push-status-label')
+    if (Notification.permission === 'granted') {
+      if (lbl) lbl.textContent = 'מופעל'
+    } else {
+      input.checked = false
+      if (lbl) lbl.textContent = 'כבוי'
+    }
+  } else {
+    await disablePush()
+  }
+}
+
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) {
+      await sub.unsubscribe()
+      await sb.from('push_subscriptions').delete().eq('user_id', ME.id).eq('endpoint', sub.endpoint)
+    }
+    const lbl = document.getElementById('push-status-label')
+    if (lbl) lbl.textContent = 'כבוי'
+    toast('התראות כובו')
+  } catch(e) {
+    console.warn('disablePush:', e.message)
+  }
 }
 
 async function subscribePush() {
