@@ -2782,6 +2782,7 @@ async function loadProf() {
           : `<label class="push-toggle"><input type="checkbox" id="push-toggle-input" ${Notification.permission === 'granted' ? 'checked' : ''} onchange="togglePushNotif(this)"><span class="push-slider"></span></label>`
         }
       </div>
+      <button onclick="testPush()" style="width:100%;padding:9px;border-radius:var(--r8);border:1px solid var(--bdm);background:transparent;color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px">🧪 Test push notification</button>
     </div>
     <div class="sc" style="padding-bottom:8px">
       <div class="sc-lbl">Legal</div>
@@ -3168,6 +3169,24 @@ async function disablePush() {
     toast('התראות כובו')
   } catch(e) {
     console.warn('disablePush:', e.message)
+  }
+}
+
+async function testPush() {
+  if (!ME) return
+  toast('שולח...')
+  try {
+    const res = await fetch('https://ubrsnymjvgasneeuqewv.supabase.co/functions/v1/send-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs' },
+      body: JSON.stringify({ user_id: ME.id, title: '✅ Push works!', body: 'If you see this — everything is connected', tag: 'push-test' })
+    })
+    const json = await res.json()
+    if (json.error) toast('❌ Error: ' + json.error)
+    else if (json.sent === 0) toast('⚠️ Sent 0 — no subscription found in DB')
+    else toast('✅ Sent! Check your notifications')
+  } catch(e) {
+    toast('❌ Network error: ' + e.message)
   }
 }
 
