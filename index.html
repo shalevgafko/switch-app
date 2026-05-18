@@ -1952,7 +1952,7 @@ async function sendMsg() {
   if (!rateLimit('msg', 12, 10000)) { toast('Slow down a bit 🙏'); return }
   inp.value = ''
   await sb.from('messages').insert({ request_id: activeChatReqId, sender_id: ME.id, text: txt })
-  if (activeChatOtherId) await notify(activeChatOtherId, 'new_message', 'New message from ' + ME.name, txt.substring(0, 50))
+  if (activeChatOtherId) await notify(activeChatOtherId, 'new_message', 'New message from ' + ME.name, txt.substring(0, 50), null, 'chat-' + activeChatReqId, 'https://shalevgafko.github.io/switch-app/')
   await renderMsgs()
 }
 async function loadChatList() {
@@ -2968,7 +2968,7 @@ async function doSignOut() {
 const NOTIF_ICONS = { new_request:'🤝', request_accepted:'🎉', new_message:'💬', new_like:'❤️', new_comment:'💬', three_way_opportunity:'🔥', three_way_pending_approval:'🔗', three_way_approved:'🎉', three_way_missed:'😔', request_declined_searching:'🔍', group_chat_created:'🎉', search_alert_match:'🔔' }
 const NOTIF_ICO_CLASS = { new_request:'req', request_accepted:'req', new_message:'msg', new_like:'like', new_comment:'comm', three_way_opportunity:'req', three_way_pending_approval:'req', three_way_approved:'req', three_way_missed:'msg', request_declined_searching:'msg', group_chat_created:'req', search_alert_match:'req' }
 
-async function notify(userId, type, title, body, data) {
+async function notify(userId, type, title, body, data, pushTag, pushUrl) {
   if (!userId || userId === ME?.id) return
   const rec = { user_id: userId, type, title, body: body || '' }
   if (data) rec.data = data
@@ -2976,7 +2976,7 @@ async function notify(userId, type, title, body, data) {
   fetch('https://ubrsnymjvgasneeuqewv.supabase.co/functions/v1/send-push', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs' },
-    body: JSON.stringify({ user_id: userId, title, body: body || '' })
+    body: JSON.stringify({ user_id: userId, title, body: body || '', tag: pushTag, url: pushUrl })
   }).catch(() => {})
 }
 
