@@ -1525,6 +1525,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     loadProf()
     loadComm()
     loadReqs()
+    subscribePush()
   } else {
     try { Object.keys(localStorage).filter(k=>k.startsWith('sw_me_')).forEach(k=>localStorage.removeItem(k)) } catch(e) {}
     ME = null
@@ -2889,6 +2890,42 @@ async function notify(userId, type, title, body, data) {
   const rec = { user_id: userId, type, title, body: body || '' }
   if (data) rec.data = data
   try { await sb.from('notifications').insert(rec) } catch(e) {}
+  fetch('https://ubrsnymjvgasneeuqewv.supabase.co/functions/v1/send-push', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicnNueW1qdmdhc25lZXVxZXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTQxMjQsImV4cCI6MjA5NDE5MDEyNH0.lsX9FHS_buvEUq7T8q4Vrq3tLFbiQJHxRFgssdVICEs' },
+    body: JSON.stringify({ user_id: userId, title, body: body || '' })
+  }).catch(() => {})
+}
+
+// ── PUSH SUBSCRIPTIONS ──
+function urlBase64ToUint8Array(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4)
+  const b = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(b)
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+}
+
+async function subscribePush() {
+  if (!('PushManager' in window) || !ME) return
+  try {
+    const reg = await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') return
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array('BL60BjCz_9AsBdRVlvT_ncmf5LbNmGiB55j1a2TLrS8slcNlrCVVlwIAhWQy_JV79z8t2o-NPF9lBaDq_eohzVA')
+      })
+    }
+    const subJson = sub.toJSON()
+    await sb.from('push_subscriptions').upsert(
+      { user_id: ME.id, endpoint: subJson.endpoint, subscription: subJson },
+      { onConflict: 'user_id,endpoint' }
+    )
+  } catch(e) {
+    console.warn('Push subscription failed:', e.message)
+  }
 }
 
 async function loadNotifCount() {
