@@ -1645,6 +1645,7 @@ async function loadFeed() {
             <div class="av" style="width:26px;height:26px;font-size:10px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avInner}</div>
             <div style="flex:1;min-width:0"><div class="card-uname">${u.name}</div><div class="card-loc">${u.location||''}</div></div>
             <button onclick="event.stopPropagation();toggleFav('${u.id}',this)" style="background:none;border:none;cursor:pointer;font-size:18px;padding:2px 4px;flex-shrink:0;line-height:1">${isSaved?'❤️':'🤍'}</button>
+            <button onclick="event.stopPropagation();shareSkill('${u.id}','${escHtml(svc.name)}')" style="background:none;border:none;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1;color:var(--tx3);font-size:14px" title="Share">🔗</button>
           </div>
           <div class="card-title">${svc.name}</div>
           <div class="card-desc">${svc.description||''}</div>
@@ -1824,7 +1825,12 @@ async function loadReqs() {
       return `<div class="rcard" style="border-color:var(--g)"><div class="rrow"><div class="av" style="width:40px;height:40px;font-size:13px;background:${u.avatar_bg||'#9FE1CB'};color:${u.avatar_tc||'#085041'}">${avIn}</div><div style="flex:1"><div class="rname">${u.name}</div><div class="rsub">${u.location||''}</div></div><div class="spill spo">Match ✓</div></div><div class="rbtns"><button class="bchat" style="flex:1" onclick="openChatByUserId('${otherId}')">💬 Open Chat</button></div></div>`
     }).join('')
   }
-  if (!html) html = '<div class="empty">No requests yet</div>'
+  if (!html) html = `<div style="padding:52px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px">
+    <div style="font-size:52px">🤝</div>
+    <div style="font-size:17px;font-weight:700;color:var(--tx);font-family:'Inter',sans-serif">No requests yet</div>
+    <div style="font-size:14px;color:var(--tx2);line-height:1.6;max-width:260px">Find a skill you need and tap "Send request" — it'll show up here when they respond.</div>
+    <button class="btn-g" onclick="goTab('feed')" style="width:auto;padding:12px 28px">Discover skills →</button>
+  </div>`
   document.getElementById('rlist').innerHTML = html
 }
 
@@ -2683,7 +2689,7 @@ async function loadProf() {
     </div>
     <div class="sc">
       <div class="sc-lbl">My Skills</div>
-      <div id="svcs-list">${svcs.map(s=>`<div class="msr"><span>${s.name} — ${s.description||''}</span><button class="delb" onclick="delServ('${s.id}')">✕</button></div>`).join('')}</div>
+      <div id="svcs-list">${svcs.length ? svcs.map(s=>`<div class="msr"><span>${s.name} — ${s.description||''}</span><button class="delb" onclick="delServ('${s.id}')">✕</button></div>`).join('') : '<div style="font-size:13px;color:var(--tx3);padding:10px 0 4px;text-align:center">No skills yet — add your first one below 👇</div>'}</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <input id="s-name" type="text" placeholder="Skill name..." style="border:1px solid var(--bdm);border-radius:var(--r8);padding:9px 12px;font-size:13px;background:var(--bg);font-family:inherit;outline:none;width:100%;transition:border-color .15s" onfocus="this.style.borderColor='var(--g)'" onblur="this.style.borderColor='var(--bdm)'">
         <input id="s-desc" type="text" placeholder="Short description (shown in the feed)..." style="border:1px solid var(--bdm);border-radius:var(--r8);padding:9px 12px;font-size:13px;background:var(--bg);font-family:inherit;outline:none;width:100%;transition:border-color .15s" onfocus="this.style.borderColor='var(--g)'" onblur="this.style.borderColor='var(--bdm)'">
@@ -2883,8 +2889,16 @@ function rateLimit(key, max, windowMs) {
 
 function shareProfile() {
   const url = `${location.origin}${location.pathname}?u=${ME.id}`
-  navigator.clipboard.writeText(url).then(() => toast('Link copied! 🔗'))
+  if (navigator.share) { navigator.share({ title: ME.name + ' on switch', url }).catch(()=>{}) }
+  else navigator.clipboard.writeText(url).then(() => toast('Link copied! 🔗'))
   posthog.capture('profile_shared')
+}
+
+function shareSkill(userId, skillName) {
+  const url = `${location.origin}${location.pathname}?u=${userId}`
+  if (navigator.share) { navigator.share({ title: skillName + ' on switch', text: 'Check out this skill on switch ⇄', url }).catch(()=>{}) }
+  else navigator.clipboard.writeText(url).then(() => toast('Link copied! 🔗'))
+  posthog.capture('skill_shared', { skill: skillName })
 }
 
 function checkDeepLink() {
