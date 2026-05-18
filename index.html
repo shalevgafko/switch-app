@@ -1832,7 +1832,12 @@ async function declineReq(reqId) {
   await sb.from('requests').update({ status: 'declined' }).eq('id', reqId)
   toast('Request declined')
   loadReqs()
-  if (reqData?.from_user) searchThreeWay(reqData.from_user, ME.id).catch(() => {})
+  if (reqData?.from_user) {
+    await notify(reqData.from_user, 'request_declined_searching',
+      '❌ הבקשה נדחתה — אבל לא נגמר!',
+      'המערכת מחפשת גורם שלישי שיעזור לעסקה לקרות. אם נמצא מישהו — תקבל הודעה 🔍')
+    searchThreeWay(reqData.from_user, ME.id).catch(() => {})
+  }
 }
 
 // ── RATING ──
@@ -1888,6 +1893,7 @@ async function renderMsgs() {
   el.scrollTop = el.scrollHeight
 }
 async function sendMsg() {
+  if (activeGroupChatId) { await sendGroupMsg(); return }
   const inp = document.getElementById('msgi')
   const txt = inp.value.trim(); if (!txt || !activeChatReqId) return
   if (!rateLimit('msg', 12, 10000)) { toast('Slow down a bit 🙏'); return }
@@ -2046,6 +2052,23 @@ async function loadChatList() {
     <div id="chat-history" class="hide" style="padding:0 12px;display:flex;flex-direction:column;gap:8px;padding-bottom:16px">${history.map(renderChatCard).join('')}</div>`
   }
 
+  // Group chats (three-way deals)
+  const { data: groupChats } = await sb.from('group_chats').select('*').contains('member_ids', [ME.id]).order('created_at', { ascending: false })
+  if (groupChats?.length) {
+    html += `<div class="chat-sec-hdr" style="margin-top:10px">
+      <div class="chat-sec-title">🔗 עסקאות משולשות <div class="chat-sec-count">${groupChats.length}</div></div>
+    </div>
+    <div style="padding:0 12px;display:flex;flex-direction:column;gap:8px;padding-bottom:16px">
+      ${groupChats.map(gc => `<div class="citem" onclick="openGroupChat('${gc.id}')">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--gl);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🔗</div>
+        <div style="flex:1;min-width:0">
+          <div class="ciname">${escHtml(gc.title||'עסקה משולשת')}</div>
+          <div class="cilast">${gc.member_ids.length} משתתפים</div>
+        </div>
+      </div>`).join('')}
+    </div>`
+  }
+
   clistEl.innerHTML = html
 }
 function toggleChatHistory() {
@@ -2056,8 +2079,9 @@ function toggleChatHistory() {
   if (ch) ch.style.transform = hidden ? '' : 'rotate(90deg)'
 }
 function closeChat() {
-  activeChatReqId = null; activeChatOtherId = null
+  activeChatReqId = null; activeChatOtherId = null; activeGroupChatId = null
   if (chatSub) { sb.removeChannel(chatSub); chatSub = null }
+  if (groupChatSub) { sb.removeChannel(groupChatSub); groupChatSub = null }
   document.getElementById('clist-view').classList.remove('hide')
   document.getElementById('cwin').classList.add('hide')
   document.getElementById('deal-bar').innerHTML = ''
@@ -2669,6 +2693,17 @@ async function loadProf() {
       </div>
     </div>
     <div class="sc">
+      <div class="sc-lbl">מה מעניין אותי</div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:10px;line-height:1.5">בחר קטגוריות שתרצה לקבל שירות בהן — המערכת תשתמש בזה לחיבורים חכמים</div>
+      <div id="interests-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        ${CATS.filter(c=>c!=='All').map(c => {
+          const on = (me.interests||[]).includes(c)
+          return `<button data-cat="${c}" onclick="toggleInterest(this)" style="padding:6px 13px;border-radius:20px;border:1.5px solid ${on?'var(--g)':'var(--bdm)'};background:${on?'var(--gl)':'transparent'};color:${on?'var(--gd)':'var(--tx2)'};font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;font-weight:${on?'600':'400'}">${EMOJIS[c]||'✨'} ${c}</button>`
+        }).join('')}
+      </div>
+      <button onclick="saveInterests()" style="padding:9px 20px;border-radius:var(--r8);background:var(--g);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit">שמור העדפות ✓</button>
+    </div>
+    <div class="sc">
       <div class="sc-lbl">Perks</div>
       <div class="promo pro" onclick="toast('Pro — coming soon!')"><div class="promo-ico">👑</div><div><div class="promo-title">Upgrade to Pro</div><div class="promo-sub">Stats, unlimited chat, Pro badge</div></div></div>
       <div class="promo boost" onclick="toast('Boost — coming soon!')"><div class="promo-ico">🚀</div><div><div class="promo-title">Boost your offer</div><div class="promo-sub">Promote your skill to the top of the feed</div></div></div>
@@ -2846,8 +2881,8 @@ async function doSignOut() {
 }
 
 // ── NOTIFICATIONS ──
-const NOTIF_ICONS = { new_request:'🤝', request_accepted:'🎉', new_message:'💬', new_like:'❤️', new_comment:'💬', three_way_opportunity:'🔥', three_way_pending_approval:'🔗', three_way_approved:'🎉', three_way_missed:'😔' }
-const NOTIF_ICO_CLASS = { new_request:'req', request_accepted:'req', new_message:'msg', new_like:'like', new_comment:'comm', three_way_opportunity:'req', three_way_pending_approval:'req', three_way_approved:'req', three_way_missed:'msg' }
+const NOTIF_ICONS = { new_request:'🤝', request_accepted:'🎉', new_message:'💬', new_like:'❤️', new_comment:'💬', three_way_opportunity:'🔥', three_way_pending_approval:'🔗', three_way_approved:'🎉', three_way_missed:'😔', request_declined_searching:'🔍', group_chat_created:'🎉' }
+const NOTIF_ICO_CLASS = { new_request:'req', request_accepted:'req', new_message:'msg', new_like:'like', new_comment:'comm', three_way_opportunity:'req', three_way_pending_approval:'req', three_way_approved:'req', three_way_missed:'msg', request_declined_searching:'msg', group_chat_created:'req' }
 
 async function notify(userId, type, title, body, data) {
   if (!userId || userId === ME?.id) return
@@ -2951,6 +2986,79 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {})
 }
 
+// ── INTERESTS ──
+function toggleInterest(btn) {
+  const on = btn.style.background !== 'transparent' && btn.style.background !== ''
+    ? btn.style.background.includes('gl') || btn.style.background === 'var(--gl)'
+    : false
+  const nowOn = !on
+  btn.style.border = `1.5px solid ${nowOn ? 'var(--g)' : 'var(--bdm)'}`
+  btn.style.background = nowOn ? 'var(--gl)' : 'transparent'
+  btn.style.color = nowOn ? 'var(--gd)' : 'var(--tx2)'
+  btn.style.fontWeight = nowOn ? '600' : '400'
+}
+
+async function saveInterests() {
+  const selected = Array.from(document.querySelectorAll('#interests-grid button'))
+    .filter(b => b.style.background === 'var(--gl)' || b.style.fontWeight === '600')
+    .map(b => b.dataset.cat)
+  await withTimeout(sb.from('profiles').update({ interests: selected }).eq('id', ME.id), 6000)
+  if (ME) ME.interests = selected
+  toast('העדפות נשמרו ✓')
+}
+
+// ── GROUP CHAT ──
+let activeGroupChatId = null
+let groupChatSub = null
+
+async function openGroupChat(chatId) {
+  activeGroupChatId = chatId
+  activeChatReqId = null; activeChatOtherId = null
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'))
+  document.querySelectorAll('.nbt').forEach(b => b.classList.remove('on'))
+  document.getElementById('pg-chat').classList.add('on')
+  document.getElementById('nbt-chat').classList.add('on')
+
+  const { data: gc } = await sb.from('group_chats').select('*').eq('id', chatId).single()
+  if (!gc) return
+
+  const av = document.getElementById('chdr-av')
+  av.style.cssText = 'width:32px;height:32px;font-size:16px;background:var(--gl);color:var(--gd);border-radius:50%;display:flex;align-items:center;justify-content:center'
+  av.innerHTML = '🔗'
+  document.getElementById('chdr-name').textContent = gc.title || 'עסקה משולשת'
+  document.getElementById('chdr-sub').textContent = `${gc.member_ids.length} משתתפים`
+  document.getElementById('clist-view').classList.add('hide')
+  document.getElementById('cwin').classList.remove('hide')
+  document.getElementById('deal-bar').innerHTML = ''
+  await renderGroupMsgs()
+
+  if (groupChatSub) sb.removeChannel(groupChatSub)
+  groupChatSub = sb.channel('grp-' + chatId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `chat_id=eq.${chatId}` }, () => renderGroupMsgs())
+    .subscribe()
+}
+
+async function renderGroupMsgs() {
+  if (!activeGroupChatId) return
+  const { data: msgs } = await sb.from('group_messages').select('*, sender:profiles!group_messages_sender_id_fkey(name, avatar_initials, avatar_bg, avatar_tc)').eq('chat_id', activeGroupChatId).order('created_at', { ascending: true })
+  const el = document.getElementById('msgs')
+  el.innerHTML = (msgs || []).map(m => {
+    const isMe = m.sender_id === ME.id
+    const senderName = isMe ? '' : `<div style="font-size:10px;color:var(--tx3);margin-bottom:3px">${m.sender?.name || ''}</div>`
+    return `<div class="msg ${isMe ? 'me' : 'them'}">${senderName}${escHtml(m.text)}<div class="mtime">${new Date(m.created_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</div></div>`
+  }).join('')
+  el.scrollTop = el.scrollHeight
+}
+
+async function sendGroupMsg() {
+  const inp = document.getElementById('msgi')
+  const txt = inp.value.trim(); if (!txt || !activeGroupChatId) return
+  if (!rateLimit('msg', 12, 10000)) { toast('Slow down a bit 🙏'); return }
+  inp.value = ''
+  await sb.from('group_messages').insert({ chat_id: activeGroupChatId, sender_id: ME.id, text: txt })
+  await renderGroupMsgs()
+}
+
 // ── THREE-WAY DEAL ──
 async function searchThreeWay(userAId, userBId) {
   try {
@@ -2958,47 +3066,55 @@ async function searchThreeWay(userAId, userBId) {
       sb.from('three_way_proposals').insert({ user_a_id: userAId, user_b_id: userBId }).select().single(), 7000)
     if (propErr || !proposal) return
 
-    // Find candidates: users connected to A via requests
-    const { data: aReqs } = await sb.from('requests')
-      .select('from_user, to_user')
-      .or(`from_user.eq.${userAId},to_user.eq.${userAId}`)
-      .neq('status', 'declined').limit(60)
-    const cIds = new Set()
-    ;(aReqs || []).forEach(r => {
-      const other = r.from_user === userAId ? r.to_user : r.from_user
-      if (other !== userAId && other !== userBId) cIds.add(other)
-    })
-    // Broaden to B's network if too few
-    if (cIds.size < 3) {
-      const { data: bReqs } = await sb.from('requests')
+    // Get A's service categories + B's interests for smart matching
+    const [asvcs, bprof] = await Promise.all([
+      sb.from('services').select('category').eq('user_id', userAId),
+      sb.from('profiles').select('name, interests').eq('id', userBId).single()
+    ])
+    const [{ data: uA }] = await Promise.all([sb.from('profiles').select('name').eq('id', userAId).single()])
+    const aCategories = [...new Set((asvcs.data || []).map(s => s.category))]
+    const bInterests  = bprof.data?.interests || []
+    const aName = uA?.name || 'Someone'
+    const bName = bprof.data?.name || 'someone'
+
+    let candidateIds = []
+
+    // Smart match: C's interests overlap A's categories AND C offers what B wants
+    if (aCategories.length && bInterests.length) {
+      const { data: smart } = await withTimeout(
+        sb.from('profiles').select('id, interests, services(category)')
+          .neq('id', userAId).neq('id', userBId)
+          .overlaps('interests', aCategories).limit(30), 7000)
+      candidateIds = (smart || [])
+        .filter(p => (p.services || []).some(s => bInterests.includes(s.category)))
+        .map(p => p.id)
+    }
+
+    // Fallback: A/B network
+    if (candidateIds.length < 3) {
+      const { data: aReqs } = await sb.from('requests')
         .select('from_user, to_user')
-        .or(`from_user.eq.${userBId},to_user.eq.${userBId}`)
+        .or(`from_user.eq.${userAId},to_user.eq.${userAId},from_user.eq.${userBId},to_user.eq.${userBId}`)
         .neq('status', 'declined').limit(60)
-      ;(bReqs || []).forEach(r => {
-        const other = r.from_user === userBId ? r.to_user : r.from_user
-        if (other !== userAId && other !== userBId) cIds.add(other)
+      ;(aReqs || []).forEach(r => {
+        const sides = [r.from_user, r.to_user]
+        sides.forEach(u => { if (u !== userAId && u !== userBId && !candidateIds.includes(u)) candidateIds.push(u) })
       })
     }
-    // Last resort: any user with services
-    let ids = Array.from(cIds)
-    if (!ids.length) {
-      const { data: svcUsers } = await sb.from('services').select('user_id').neq('user_id', userAId).neq('user_id', userBId).limit(20)
-      ids = [...new Set((svcUsers || []).map(s => s.user_id))]
+
+    // Last resort: anyone with services
+    if (!candidateIds.length) {
+      const { data: sv } = await sb.from('services').select('user_id').neq('user_id', userAId).neq('user_id', userBId).limit(20)
+      candidateIds = [...new Set((sv || []).map(s => s.user_id))]
     }
-    if (!ids.length) return
-    ids = ids.slice(0, 10)
 
-    const [{ data: uA }, { data: uB }] = await Promise.all([
-      sb.from('profiles').select('name').eq('id', userAId).single(),
-      sb.from('profiles').select('name').eq('id', userBId).single()
-    ])
-    const aName = uA?.name || 'Someone'
-    const bName = uB?.name || 'someone'
+    candidateIds = candidateIds.slice(0, 10)
+    if (!candidateIds.length) return
 
-    for (const cId of ids) {
+    for (const cId of candidateIds) {
       await notify(cId, 'three_way_opportunity',
         '🔥 הזדמנות — הצטרף לעסקה!',
-        `${aName} ו-${bName} צריכים גורם שלישי — הראשון שיתפוס יכנס`,
+        `${aName} ו-${bName} צריכים גורם שלישי — הראשון שיתפוס יכנס (24 שעות)`,
         { proposal_id: proposal.id, user_a_id: userAId, user_b_id: userBId, user_a_name: aName, user_b_name: bName })
     }
   } catch(e) {}
@@ -3053,18 +3169,29 @@ async function approveThreeWay(claimId, btn) {
     if (updated?.a_approved && updated?.b_approved) {
       await sb.from('three_way_claims').update({ status: 'approved' }).eq('id', claimId)
       await sb.from('three_way_proposals').update({ status: 'completed' }).eq('id', claim.proposal_id)
-      // Create confirmed connections: A↔C and C↔B
-      for (const [u1, u2] of [[proposal.user_a_id, claim.user_c_id], [claim.user_c_id, proposal.user_b_id]]) {
-        const { data: existing } = await sb.from('requests').select('id').or(`and(from_user.eq.${u1},to_user.eq.${u2}),and(from_user.eq.${u2},to_user.eq.${u1})`).maybeSingle()
-        if (existing) await sb.from('requests').update({ status: 'confirmed' }).eq('id', existing.id)
-        else await sb.from('requests').insert({ from_user: u1, to_user: u2, status: 'confirmed' })
+      // Get names for group chat title
+      const [{ data: pA }, { data: pB }, { data: pC }] = await Promise.all([
+        sb.from('profiles').select('name').eq('id', proposal.user_a_id).single(),
+        sb.from('profiles').select('name').eq('id', proposal.user_b_id).single(),
+        sb.from('profiles').select('name').eq('id', claim.user_c_id).single()
+      ])
+      // Create group chat
+      const { data: gc } = await withTimeout(
+        sb.from('group_chats').insert({
+          title: `🔗 ${pA?.name||'A'}, ${pB?.name||'B'} & ${pC?.name||'C'}`,
+          member_ids: [proposal.user_a_id, proposal.user_b_id, claim.user_c_id],
+          proposal_id: claim.proposal_id
+        }).select().single(), 7000)
+      if (gc) {
+        await sb.from('group_messages').insert({ chat_id: gc.id, sender_id: ME.id, text: '🎉 העסקה המשולשת אושרה! שלושתכם מחוברים — אפשר לסגור פרטים כאן.' })
+        const gcData = { group_chat_id: gc.id }
+        await notify(claim.user_c_id, 'group_chat_created', '🎉 עסקה משולשת — צ\'אט נפתח!', `${pA?.name||'A'}, ${pB?.name||'B'} ואתה מחוברים`, gcData)
+        const otherParty = isA ? proposal.user_b_id : proposal.user_a_id
+        await notify(otherParty, 'group_chat_created', '🎉 עסקה משולשת — צ\'אט נפתח!', `${pA?.name||'A'}, ${pB?.name||'B'} ו-${pC?.name||'C'} מחוברים`, gcData)
       }
-      await notify(claim.user_c_id, 'three_way_approved', '🎉 עסקה משולשת מאושרת!', 'שני הצדדים אישרו — בדוק את הצ\'אטים שלך!')
-      const otherParty = isA ? proposal.user_b_id : proposal.user_a_id
-      await notify(otherParty, 'three_way_approved', '🎉 עסקה משולשת מאושרת!', 'כל הצדדים אישרו — בדוק את הצ\'אטים שלך!')
       btn.textContent = '🎉 אושר!'
       btn.style.background = 'var(--gd)'
-      toast('🎉 עסקה משולשת מאושרת! בדוק את הצ\'אטים')
+      toast('🎉 עסקה משולשת מאושרת! צ\'אט קבוצתי נפתח')
       posthog.capture('three_way_completed', { claim_id: claimId })
       setTimeout(() => { loadChatList(); goTab('chat') }, 1500)
     } else {
